@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="recommendMapper">
+
+<!-- 추천 목록 -->
+  <select id="selectRecommendList" parameterType="hashMap" resultType="com.livelyit.allcam.dto.RecommendUserDTO">
+  	<![CDATA[
+	  	SELECT  r.[no]
+				  ,r.[sdate]
+				  ,r.[user_no]
+				  ,[user_id]
+			      ,[user_email]
+			      ,[user_nick_name]
+			      ,[user_age]
+			      ,[user_gender]
+			      ,[conversation_no]
+			      ,[user_alarm_popup]
+			      ,[user_alarm_push]
+			      ,[user_alarm_bookmark]
+			      ,[user_alarm_sound]
+			      ,[user_alarm_bive]
+			      ,[user_cash]
+			      ,[user_point] + [user_free_point] AS [user_point]
+			      ,[user_push_key]
+			      ,[user_star_grade]
+			      ,[user_live_average]
+			      ,[user_country_code]
+			  	  ,[user_language_code]
+				  ,RTRIM([user_total_live_time]) AS [user_total_live_time]
+			      ,[user_type]
+				  ,[book].[book_cnt] AS [bookmark_cnt]
+				  ,[user_nick_name]
+				  ,[cov_content] AS [conversation]
+				  ,[like].[like_cnt]
+				  ,ISNULL([connect_user_no],0) AS [connect_user_no]
+				  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = r.[user_no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+				  ,[my_like].[cnt] AS [my_like_chk]
+				  ,[my_bookmark].[cnt] AS [my_bookmark_chk]
+		 	 FROM [dbo].[TB_ADMIN_RECOMMEND_USER] as r
+		 	 INNER JOIN [dbo].[TB_USER] AS u ON r.[user_no] =  u.[no]
+			 INNER JOIN [dbo].[TB_CONVERSATION] AS c ON u.[conversation_no] = c.[no]
+			  LEFT JOIN [dbo].[TB_WATING_ROOM] AS wr ON u.[no] = wr.[user_no]
+		 	 OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [to_user_no] = r.[user_no]) AS [like]
+		 	 OUTER APPLY (SELECT COUNT(*) AS book_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = r.[user_no]) AS [book]
+			 OUTER APPLY (SELECT COUNT(*) AS cnt FROM [dbo].[TB_BOOKMARK] WHERE [user_no] = #{user_no} AND [bookmark_user_no] = r.[user_no]) AS [my_bookmark]
+			 OUTER APPLY (SELECT COUNT(*) AS cnt FROM [dbo].[TB_LIKE] WHERE [user_no] = #{user_no} AND [to_user_no] = r.[user_no] AND ([sdate] BETWEEN CONVERT(CHAR(10), getDate(), 102) AND CONVERT(CHAR(10), getDate(), 102) + ' 23:59:59')) AS [my_like]
+		 	 WHERE [user_gender] != (SELECT [user_gender] FROM [dbo].[TB_USER] WHERE [no] = #{user_no})
+		 	 AND u.[no] != 1 AND u.[user_part_time] != 3
+		 	 AND u.[user_service_type] != 'meincam'
+		 	 ORDER BY r.[order_by] DESC
+ 	 ]]>
+	</select>
+
+
+	<select id="selectRecommendListV2" parameterType="hashMap" resultType="com.livelyit.allcam.dto.RecommendUserDTO">
+  	<![CDATA[
+	  	SELECT  r.[no]
+				  ,r.[sdate]
+				  ,r.[user_no]
+				  ,[user_id]
+			      ,[user_email]
+			      ,[user_nick_name]
+			      ,[user_age]
+			      ,[user_gender]
+			      ,[conversation_no]
+			      ,[user_alarm_popup]
+			      ,[user_alarm_push]
+			      ,[user_alarm_bookmark]
+			      ,[user_alarm_sound]
+			      ,[user_alarm_bive]
+			      ,[user_cash]
+			      ,[user_point] + [user_free_point] AS [user_point]
+			      ,[user_push_key]
+			      ,[user_star_grade]
+			      ,[user_live_average]
+			      ,[user_country_code]
+			  	  ,[user_language_code]
+				  ,RTRIM([user_total_live_time]) AS [user_total_live_time]
+			      ,[user_type]
+				  ,[book].[book_cnt] AS [bookmark_cnt]
+				  ,[user_nick_name]
+				  ,CASE WHEN [conversation_no] = 0 THEN [conversation_txt] ELSE
+					CASE #{user_language_code} WHEN 'ko' THEN [cov_content] ELSE  [cov_content_en]
+					END
+				END AS [conversation]
+				  ,[like].[like_cnt]
+				  ,ISNULL([connect_user_no],0) AS [connect_user_no]
+				  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = r.[user_no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+				  ,[my_like].[cnt] AS [my_like_chk]
+				  ,[my_bookmark].[cnt] AS [my_bookmark_chk]
+		 	 FROM [dbo].[TB_ADMIN_RECOMMEND_USER] as r
+		 	 INNER JOIN [dbo].[TB_USER] AS u ON r.[user_no] =  u.[no]
+			 INNER JOIN [dbo].[TB_CONVERSATION] AS c ON u.[conversation_no] = c.[no]
+			  LEFT JOIN [dbo].[TB_WATING_ROOM] AS wr ON u.[no] = wr.[user_no]
+		 	 OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [to_user_no] = r.[user_no]) AS [like]
+		 	 OUTER APPLY (SELECT COUNT(*) AS book_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = r.[user_no]) AS [book]
+			 OUTER APPLY (SELECT COUNT(*) AS cnt FROM [dbo].[TB_BOOKMARK] WHERE [user_no] = #{user_no} AND [bookmark_user_no] = r.[user_no]) AS [my_bookmark]
+			 OUTER APPLY (SELECT COUNT(*) AS cnt FROM [dbo].[TB_LIKE] WHERE [user_no] = #{user_no} AND [to_user_no] = r.[user_no] AND ([sdate] BETWEEN CONVERT(CHAR(10), getDate(), 102) AND CONVERT(CHAR(10), getDate(), 102) + ' 23:59:59')) AS [my_like]
+		 	 WHERE [user_gender] != (SELECT [user_gender] FROM [dbo].[TB_USER] WHERE [no] = #{user_no})
+		 	 AND u.[no] != 1 AND u.[user_part_time] != 3
+		 	 AND u.[user_service_type] != 'meincam'
+		 	 ORDER BY r.[order_by] DESC
+ 	 ]]>
+	</select>
+
+	<select id="recommendListNonMember" resultType="com.livelyit.allcam.dto.RecommendUserDTO">
+  	<![CDATA[
+	  	SELECT  r.[no]
+				  ,r.[sdate]
+				  ,r.[user_no]
+				  ,[user_id]
+			      ,[user_email]
+			      ,[user_nick_name]
+			      ,[user_age]
+			      ,[user_gender]
+			      ,[conversation_no]
+			      ,[user_alarm_popup]
+			      ,[user_alarm_push]
+			      ,[user_alarm_bookmark]
+			      ,[user_alarm_sound]
+			      ,[user_alarm_bive]
+			      ,[user_cash]
+			      ,[user_point] + [user_free_point] AS [user_point]
+			      ,[user_push_key]
+			      ,[user_star_grade]
+			      ,[user_live_average]
+			      ,'ko' [user_language_code]
+			      ,'KR' [user_country_code]
+			    --  ,[user_country_code]
+			  	 -- ,[user_language_code]
+				  ,RTRIM([user_total_live_time]) AS [user_total_live_time]
+			      ,[user_type]
+				  ,[book].[book_cnt] AS [bookmark_cnt]
+				  ,[user_nick_name]
+				  --,CASE 'ko' WHEN 'ko' THEN [cov_content] ELSE  [cov_content_en] END AS [conversation]
+				  , [cov_content] AS [conversation]
+				  ,[like].[like_cnt]
+				  ,ISNULL([connect_user_no],0) AS [connect_user_no]
+				  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = r.[user_no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+		 	 FROM [dbo].[TB_ADMIN_RECOMMEND_USER] as r
+		 	 INNER JOIN [dbo].[TB_USER] AS u ON r.[user_no] =  u.[no]
+			 INNER JOIN [dbo].[TB_CONVERSATION] AS c ON u.[conversation_no] = c.[no]
+			  LEFT JOIN [dbo].[TB_WATING_ROOM] AS wr ON u.[no] = wr.[user_no]
+		 	 OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [to_user_no] = r.[user_no]) AS [like]
+		 	 OUTER APPLY (SELECT COUNT(*) AS book_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = r.[user_no]) AS [book]
+		 	 WHERE [user_gender] = '여성'
+		 	 AND u.[no] != 1 AND u.[user_part_time] != 3
+		 	 AND u.[user_service_type] != 'meincam'
+		 	 ORDER BY r.[order_by] DESC
+ 	 ]]>
+	</select>
+
+	<!-- 직접입력한 대화정보 가져오기 	-->
+	<select id="selectRecommendListV3" parameterType="hashMap" resultType="com.livelyit.allcam.dto.RecommendUserDTO">
+  	<![CDATA[
+	  	SELECT  r.[no]
+				  ,r.[sdate]
+				  ,r.[user_no]
+				  ,[user_id]
+			      ,[user_email]
+			      ,[user_nick_name]
+			      ,[user_age]
+			      ,[user_gender]
+			      ,[conversation_no]
+			      ,[user_alarm_popup]
+			      ,[user_alarm_push]
+			      ,[user_alarm_bookmark]
+			      ,[user_alarm_sound]
+			      ,[user_alarm_bive]
+			      ,[user_cash]
+			      ,[user_point] + [user_free_point] AS [user_point]
+			      ,[user_push_key]
+			      ,[user_star_grade]
+			      ,[user_live_average]
+			      ,[user_country_code]
+			  	  ,[user_language_code]
+				  ,RTRIM([user_total_live_time]) AS [user_total_live_time]
+			      ,[user_type]
+				  ,[book].[book_cnt] AS [bookmark_cnt]
+				  ,[user_nick_name]
+				  ,CASE [conversation_no] WHEN 0 THEN
+				  [conversation_txt]
+				  ELSE
+			  	  CASE #{user_language_code} WHEN 'ko' THEN [cov_content] ELSE  [cov_content_en] END END AS [conversation]
+				  ,[like].[like_cnt]
+				  ,ISNULL([connect_user_no],0) AS [connect_user_no]
+				  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = r.[user_no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+				  ,[my_like].[cnt] AS [my_like_chk]
+				  ,[my_bookmark].[cnt] AS [my_bookmark_chk]
+		 	 FROM [dbo].[TB_ADMIN_RECOMMEND_USER] as r
+		 	 INNER JOIN [dbo].[TB_USER] AS u ON r.[user_no] =  u.[no]
+			 INNER JOIN [dbo].[TB_CONVERSATION] AS c ON u.[conversation_no] = c.[no]
+			  LEFT JOIN [dbo].[TB_WATING_ROOM] AS wr ON u.[no] = wr.[user_no]
+		 	 OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [to_user_no] = r.[user_no]) AS [like]
+		 	 OUTER APPLY (SELECT COUNT(*) AS book_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = r.[user_no]) AS [book]
+			 OUTER APPLY (SELECT COUNT(*) AS cnt FROM [dbo].[TB_BOOKMARK] WHERE [user_no] = #{user_no} AND [bookmark_user_no] = r.[user_no]) AS [my_bookmark]
+			 OUTER APPLY (SELECT COUNT(*) AS cnt FROM [dbo].[TB_LIKE] WHERE [user_no] = #{user_no} AND [to_user_no] = r.[user_no] AND ([sdate] BETWEEN CONVERT(CHAR(10), getDate(), 102) AND CONVERT(CHAR(10), getDate(), 102) + ' 23:59:59')) AS [my_like]
+		 	 WHERE [user_gender] != (SELECT [user_gender] FROM [dbo].[TB_USER] WHERE [no] = #{user_no})
+		 	 AND u.[no] != 1 AND u.[user_part_time] != 3
+		 	 AND u.in_list = 0
+		 	 AND u.[user_service_type] != 'meincam'
+		 	 ORDER BY r.[order_by] DESC
+ 	 ]]>
+	</select>
+
+	<select id="selectNonmenberRecommendList" resultType="com.livelyit.allcam.dto.RecommendUserDTO">
+  	<![CDATA[
+	  	SELECT  r.[no]
+				  ,r.[sdate]
+				  ,r.[user_no]
+				  ,[user_id]
+			      ,[user_email]
+			      ,[user_nick_name]
+			      ,[user_age]
+			      ,[user_gender]
+			      ,[conversation_no]
+			      ,[user_alarm_popup]
+			      ,[user_alarm_push]
+			      ,[user_alarm_bookmark]
+			      ,[user_alarm_sound]
+			      ,[user_alarm_bive]
+			      ,[user_cash]
+			      ,[user_point] + [user_free_point] AS [user_point]
+			      ,[user_push_key]
+			      ,[user_star_grade]
+			      ,[user_live_average]
+			      ,[user_country_code]
+			  	  ,[user_language_code]
+				  ,RTRIM([user_total_live_time]) AS [user_total_live_time]
+			      ,[user_type]
+				  ,[book].[book_cnt] AS [bookmark_cnt]
+				  ,[user_nick_name]
+				  ,[cov_content] AS [conversation]
+				  ,[like].[like_cnt]
+				  ,ISNULL([connect_user_no],0) AS [connect_user_no]
+				  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = r.[user_no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+				  ,0 AS [my_like_chk]
+				  ,0 AS [my_bookmark_chk]
+		 	 FROM [dbo].[TB_ADMIN_RECOMMEND_USER] as r
+		 	 INNER JOIN [dbo].[TB_USER] AS u ON r.[user_no] =  u.[no]
+			 INNER JOIN [dbo].[TB_CONVERSATION] AS c ON u.[conversation_no] = c.[no]
+			  LEFT JOIN [dbo].[TB_WATING_ROOM] AS wr ON u.[no] = wr.[user_no]
+		 	 OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [to_user_no] = r.[user_no]) AS [like]
+		 	 OUTER APPLY (SELECT COUNT(*) AS book_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = r.[user_no]) AS [book]
+		 	 WHERE [user_gender] = '남성'
+		 	 AND u.[no] != 1 AND u.[user_part_time] != 3
+		 	 AND u.[user_service_type] != 'meincam'
+		 	 ORDER BY r.[order_by] DESC
+ 	 ]]>
+	</select>
+
+	<select id="selectRecommendListMC" parameterType="hashMap" resultType="com.livelyit.allcam.dto.RecommendUserDTO">
+  	<![CDATA[
+	  	SELECT TOP 20 U.[no]
+				  ,U.[sdate]
+				  ,U.[no] as user_no
+                  ,[user_id]
+			      ,[user_email]
+			      ,[user_nick_name]
+			      ,[user_age]
+			      ,[user_gender]
+			      ,[conversation_no]
+			      ,[user_alarm_popup]
+			      ,[user_alarm_push]
+			      ,[user_alarm_bookmark]
+			      ,[user_alarm_sound]
+			      ,[user_alarm_bive]
+			      ,[user_cash]
+			      ,[user_point] + [user_free_point] AS [user_point]
+			      ,[user_push_key]
+			      ,[user_star_grade]
+			      ,[user_live_average]
+			      ,[user_country_code]
+			  	  ,[user_language_code]
+				  ,RTRIM([user_total_live_time]) AS [user_total_live_time]
+			      ,[user_type]
+				  ,[book].[book_cnt] AS [bookmark_cnt]
+				  ,[user_nick_name]
+				  ,CASE WHEN [conversation_no] = 0 THEN [conversation_txt] ELSE
+					CASE #{user_language_code} WHEN 'ko' THEN [cov_content] ELSE  [cov_content_en]
+					END
+				END AS [conversation]
+				  ,[like].[like_cnt]
+				  ,ISNULL([connect_user_no],0) AS [connect_user_no]
+				  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = u.[no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+				  ,[my_like].[cnt] AS [my_like_chk]
+				  ,[my_bookmark].[cnt] AS [my_bookmark_chk]
+    ]]>
+		<if test='waiting_gender.equals("여성")'><![CDATA[
+    		,B.total_call_time FROM
+            (SELECT * FROM TB_USER WHERE user_type = 0 AND user_part_time != 2 AND user_push_key != 'NONE' AND user_gender = #{waiting_gender}) U
+            INNER JOIN
+            (select A.user_no, SUM(total_call_time) AS total_call_time from (
+            SELECT my_user_no as user_no, sum(finish_use_seconds) as total_call_time from TB_LIVE_ROOM WHERE room_status = 2 and finish_use_seconds > 0  AND CONVERT(int,CONVERT(CHAR(8), sdate, 112)) BETWEEN  CONVERT(int,CONVERT(CHAR(8), getdate()-8, 112)) AND  CONVERT(int,CONVERT(CHAR(8), getdate()-1, 112)) group by my_user_no
+            UNION ALL
+            SELECT partner_user_no as user_no, sum(finish_use_seconds) as total_call_time from TB_LIVE_ROOM WHERE room_status = 2 and finish_use_seconds > 0 AND CONVERT(int,CONVERT(CHAR(8), sdate, 112)) BETWEEN  CONVERT(int,CONVERT(CHAR(8), getdate()-8, 112)) AND  CONVERT(int,CONVERT(CHAR(8), getdate()-1, 112)) group by partner_user_no
+            ) A GROUP BY A.user_no) B ON U.no=B.user_no
+            INNER JOIN [dbo].[TB_CONVERSATION] AS c ON U.[conversation_no] = c.[no]
+            LEFT JOIN [dbo].[TB_WATING_ROOM] AS wr ON U.[no] = wr.[user_no]
+            OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [to_user_no] = U.[no]) AS [like]
+		 	 OUTER APPLY (SELECT COUNT(*) AS book_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = U.[no]) AS [book]
+			 OUTER APPLY (SELECT COUNT(*) AS cnt FROM [dbo].[TB_BOOKMARK] WHERE [user_no] = #{user_no} AND [bookmark_user_no] = U.[no]) AS [my_bookmark]
+			 OUTER APPLY (SELECT COUNT(*) AS cnt FROM [dbo].[TB_LIKE] WHERE [user_no] = #{user_no} AND [to_user_no] = U.[no] AND ([sdate] BETWEEN CONVERT(CHAR(10), getDate(), 102) AND CONVERT(CHAR(10), getDate(), 102) + ' 23:59:59')) AS [my_like]
+			ORDER BY B.total_call_time DESC
+ 	 ]]>
+		</if>
+		<if test='waiting_gender.equals("남성")'><![CDATA[
+		FROM
+            (SELECT * FROM TB_USER WHERE user_type = 0 AND user_part_time != 2 AND user_push_key != 'NONE' AND user_point > 1800 AND user_gender = #{waiting_gender}
+            AND no IN (SELECT DISTINCT user_no FROM TB_PAY_LIST WHERE sdate > DATEADD(day, -5, getdate()) AND admin_no = 0 AND cancal_date = '1900-01-01 00:00:00.000') ) U
+			INNER JOIN [dbo].[TB_CONVERSATION] AS c ON U.[conversation_no] = c.[no]
+			LEFT JOIN [dbo].[TB_WATING_ROOM] AS wr ON U.[no] = wr.[user_no]
+			OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [to_user_no] = U.[no]) AS [like]
+			OUTER APPLY (SELECT COUNT(*) AS book_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = U.[no]) AS [book]
+			OUTER APPLY (SELECT COUNT(*) AS cnt FROM [dbo].[TB_BOOKMARK] WHERE [user_no] = #{user_no} AND [bookmark_user_no] = U.[no]) AS [my_bookmark]
+			OUTER APPLY (SELECT COUNT(*) AS cnt FROM [dbo].[TB_LIKE] WHERE [user_no] = #{user_no} AND [to_user_no] = U.[no] AND ([sdate] BETWEEN CONVERT(CHAR(10), getDate(), 102) AND CONVERT(CHAR(10), getDate(), 102) + ' 23:59:59')) AS [my_like]
+			ORDER BY U.user_point DESC
+			]]>
+		</if>
+	</select>
+
+	
+</mapper>

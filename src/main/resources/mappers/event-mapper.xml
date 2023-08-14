@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="eventMapper">
+
+<!-- 이벤트 목록 -->
+<!--  현재 날짜 기준으로 리스트 시 	 WHERE [event_term_start] <= GETDATE() AND [event_term_end] >= GETDATE()  추가  -->
+  <select id="selectEventList" parameterType="hashMap" resultType="com.livelyit.allcam.dto.EventDTO">
+  	<![CDATA[
+	  SELECT [no]
+	      ,[event_subject]
+	      ,[event_banner]
+	      ,[event_content_img]
+	      ,[event_banner_data]
+	      ,[event_content_img_data]
+	      ,CONVERT(CHAR(10), [event_term_start], 20) AS [event_term_start]
+	      ,CONVERT(CHAR(10), [event_term_end], 20) AS [event_term_end]
+	      ,CONVERT(CHAR(10), [sdate], 20) AS [sdate]
+ 	 FROM [dbo].[TB_EVENT] WHERE [display_flag] =1 ORDER BY [event_term_end] DESC
+  	]]>  	
+  </select>
+
+	<select id="selectEventListV2" parameterType="com.livelyit.allcam.dto.UserInfoDTO" resultType="com.livelyit.allcam.dto.EventDTO">
+  	<![CDATA[
+	  SELECT [no]
+	      ,[event_subject]
+	      ,[event_banner]
+	      ,[event_content_img]
+	      ,[event_banner_data]
+	      ,[event_content_img_data]
+	      , click_flag
+	      , ISNULL(link_url,'NONE') as link_url
+	      ,CONVERT(CHAR(10), [event_term_start], 20) AS [event_term_start]
+	      ,CONVERT(CHAR(10), [event_term_end], 20) AS [event_term_end]
+ 	 FROM [dbo].[TB_EVENT]
+ 	 WHERE
+       [display_flag] =1 AND event_target_gender IN ('all', #{user_gender})
+    ]]>
+		<if test='user_service_type.equals("meincam")'><![CDATA[ AND event_service_type = 'meincam' ]]></if>
+		<if test='!user_service_type.equals("meincam")'><![CDATA[ AND event_service_type != 'meincam' ]]></if>
+	<![CDATA[
+      ORDER BY no DESC
+  	]]>
+  </select>
+
+	<select id="selectEventListMC" parameterType="com.livelyit.allcam.dto.UserInfoDTO" resultType="com.livelyit.allcam.dto.EventDTO">
+  	<![CDATA[
+	  SELECT [no]
+	      ,[event_subject]
+	      ,[event_banner]
+	      ,[event_content_img]
+	      ,[event_banner_data]
+	      ,[event_content_img_data]
+	      , click_flag
+	      , ISNULL(link_url,'NONE') as link_url
+	      ,CONVERT(CHAR(10), [event_term_start], 20) AS [event_term_start]
+	      ,CONVERT(CHAR(10), [event_term_end], 20) AS [event_term_end]
+ 	 FROM [dbo].[TB_EVENT]
+ 	 WHERE event_target_gender IN ('all', #{user_gender}) AND event_service_type = 'meincam' AND [display_flag] =1 ORDER BY no DESC
+  	]]>
+  </select>
+
+
+	<!--  이벤트 가져오기 -->
+	<select id="selectEvent" parameterType = "int" resultType="com.livelyit.allcam.dto.EventDTO">
+	<![CDATA[
+		SELECT no, event_subject, event_banner, event_content_img, click_flag, ISNULL(link_url,'NONE') as link_url
+		  ,CONVERT(CHAR(10), [event_term_start], 20) AS [event_term_start]
+	      ,CONVERT(CHAR(10), [event_term_end], 20) AS [event_term_end]
+		FROM [dbo].[TB_EVENT] WHERE [no] = #{no}
+	]]>
+	</select>
+  <!--  이벤트 이미지만 가져오기 (임시) -->
+	<select id="selectEventImg" parameterType = "hashMap" resultType="com.livelyit.allcam.dto.EventDTO">
+	<![CDATA[
+		SELECT [event_content_img] FROM [dbo].[TB_EVENT] WHERE [no] = #{no}
+	]]>
+		
+	</select>
+
+	<!--  비회원 이미지 가져오기 (임시) -->
+	<select id="selectNonMemberBanner" resultType="com.livelyit.allcam.dto.MainBannerDTO">
+	<![CDATA[
+		SELECT TOP 1 image_url as banner_url FROM [dbo].[TB_NON_MEMBER_BANNER] WHERE [display_flag] = 1
+		]]>
+	</select>
+</mapper>

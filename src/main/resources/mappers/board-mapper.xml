@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="boardMapper">   
+
+  <!--  공지 및 이용약관 리스트 -->
+   <select id="selectBoardList" resultType="com.livelyit.allcam.dto.BoardDTO">
+  	<![CDATA[
+  		SELECT [no]
+  			,RTRIM([board_type]) AS [board_type]
+  			,[board_subject]
+  			,[board_text]
+  			,CONVERT(CHAR(10), [sdate], 20) AS [sdate]
+  		FROM [dbo].[TB_BOARD] 
+  		WHERE [board_type] = #{board_type}
+		ORDER BY [no] DESC
+  	]]>  	
+  </select>
+
+    <!--  공지 및 이용약관 리스트 -->
+    <select id="selectBoardListV2" resultType="com.livelyit.allcam.dto.BoardDTO">
+  	<![CDATA[
+  		SELECT [no]
+  			,RTRIM([board_type]) AS [board_type]
+  			,[board_subject]
+  			,[board_text]
+  			,CONVERT(CHAR(10), [sdate], 20) AS [sdate]
+  		FROM [dbo].[TB_BOARD]
+  		WHERE [board_type] = #{board_type} AND [service_type] IN (#{service_type}, 'all') AND [target_gender] IN (#{target_gender}, 'all')
+		ORDER BY [no] DESC
+  	]]>
+  </select>
+
+
+  
+  <!-- 고객센터 문의내역 저장 -->
+  <insert id="insertCustomer" parameterType="hashMap">
+  	<![CDATA[
+  		INSERT INTO [dbo].[TB_BOARD_CUSTOMER]([question_type],[board_text],[user_no]) VALUES(#{question_type}, #{board_text}, #{user_no})
+  	]]>
+  </insert>
+  
+</mapper>

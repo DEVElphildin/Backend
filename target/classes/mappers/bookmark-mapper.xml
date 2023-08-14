@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="bookMarkMapper">
+
+  <!--  내가 즐겨찾기 한 리스트 -->
+   <select id="bookMarkList" resultType="com.livelyit.allcam.dto.BookMarkDTO">
+  	<![CDATA[ 
+		SELECT b.[no]
+			  ,[user_no]
+		      ,[bookmark_user_no]
+		      ,[user_id]
+		      ,[user_email]
+		      ,[user_nick_name]
+		      ,[user_age]
+		      ,[user_gender]
+		      ,[conversation_no]
+		      ,[user_alarm_popup]
+		      ,[user_alarm_push]
+		      ,[user_alarm_bookmark]
+		      ,[user_alarm_sound]
+		      ,[user_alarm_bive]
+		      ,[user_push_key]
+		      ,[user_point] + [user_free_point] AS [user_point]
+		      ,[user_cash]
+		      ,[user_heart]
+		      ,[user_part_time]
+		      ,[user_newbie_time]
+		      ,b.[sdate]
+			  ,ISNULL([user_img].[img_url], 'NONE') AS [user_img_url]
+			  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = u.[no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]			  
+			  ,[cov_content] AS [conversation]
+			  ,[like].[like_cnt]
+			  ,[book].[book_cnt] AS [bookmark_cnt]
+			  ,[user_star_grade]
+			  ,[user_live_average]
+			  ,[user_language_code]
+			  ,[user_total_live_time]
+			  ,[user_type]
+		 FROM [dbo].[TB_BOOKMARK] AS b
+		 INNER JOIN [dbo].[TB_USER] AS u ON b.[bookmark_user_no] = u.[no]
+		 INNER JOIN [dbo].[TB_CONVERSATION] AS c ON u.[conversation_no] = c.[no]
+		 OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [user_no] = b.[bookmark_user_no]) AS [like]
+	 	 OUTER APPLY (SELECT COUNT(*) AS book_cnt FROM [dbo].[TB_BOOKMARK] WHERE [user_no] = b.[bookmark_user_no]) AS [book]
+	 	 OUTER APPLY (SELECT TOP 1 [img_url] FROM [dbo].[TB_USER_THUMNAIL] WHERE [user_no] = b.[bookmark_user_no] AND [img_type] = 'small') AS [user_img]
+		 WHERE [user_no] = #{user_no}
+  	]]>
+  	</select>
+  	
+    <!-- 나를 즐겨찾기 한 리스트 -->
+   <select id="bookMarkUserList"  parameterType="hashMap" resultType="com.livelyit.allcam.dto.BookMarkDTO">
+  	<![CDATA[ 
+		SELECT b.[no]
+			  ,[user_no]
+		      ,[bookmark_user_no]
+		      ,[user_id]
+		      ,[user_email]
+		      ,[user_nick_name]
+		      ,[user_age]
+		      ,[user_gender]
+		      ,[conversation_no]
+		      ,[user_alarm_popup]
+		      ,[user_alarm_push]
+		      ,[user_alarm_bookmark]
+		      ,[user_alarm_sound]
+		      ,[user_alarm_bive]
+		      ,[user_push_key]
+		      ,[user_point] + [user_free_point] AS [user_point]
+		      ,[user_cash]
+		      ,[user_heart]
+		      ,[user_part_time]
+		      ,b.[sdate]
+			  ,ISNULL([user_img].[img_url], 'NONE') AS [user_img_url]
+			  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = u.[no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]			  
+			  ,[cov_content] AS [conversation]
+			  ,[like].[like_cnt]
+			  ,[book].[book_cnt] AS [bookmark_cnt]
+			  ,[user_star_grade]
+			  ,[user_live_average]
+			  ,[user_language_code]
+			  ,[user_total_live_time]
+			  ,[user_type]
+		 FROM [dbo].[TB_BOOKMARK] AS b
+		 INNER JOIN [dbo].[TB_USER] AS u ON b.[user_no] = u.[no]
+		 INNER JOIN [dbo].[TB_CONVERSATION] AS c ON u.[conversation_no] = c.[no]
+		 OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [user_no] = b.[user_no]) AS [like]
+	 	 OUTER APPLY (SELECT COUNT(*) AS book_cnt FROM [dbo].[TB_BOOKMARK] WHERE [user_no] = b.[user_no]) AS [book]
+	 	 OUTER APPLY (SELECT TOP 1 [img_url] FROM [dbo].[TB_USER_THUMNAIL] WHERE [user_no] = b.[user_no] AND [img_type] = 'small') AS [user_img]
+		 WHERE [bookmark_user_no] = #{user_no}
+  	]]>
+  </select>
+  
+  	<!--  즐겨찾기 추가 -->  
+  <insert id="insertBookMark" parameterType="hashMap" useGeneratedKeys="true" keyProperty="no" keyColumn="no">
+  	<![CDATA[
+  		INSERT INTO [dbo].[TB_BOOKMARK] ([user_no],[bookmark_user_no])
+      	VALUES(#{user_no}, #{bookmark_user_no})
+  	]]>  	
+  </insert>  
+  
+  <!--  즐겨찾기 삭제 -->  
+  <delete id="deleteBookMark" parameterType="hashMap">
+  	<![CDATA[
+  		 DELETE FROM [dbo].[TB_BOOKMARK] WHERE [user_no]= #{user_no} AND [bookmark_user_no] = #{bookmark_user_no}
+  	]]>  	
+  </delete>  
+  	   	
+	<select id="cntBookmark" parameterType="hashMap" resultType="int">
+		SELECT COUNT(*) FROM [dbo].[TB_BOOKMARK] WHERE [user_no] = #{user_no} AND [bookmark_user_no] = #{bookmark_user_no}
+	</select>
+	
+	<select id="getBookmarkGroup" parameterType="hashMap" resultType="com.livelyit.allcam.dto.GroupMsgDTO">
+		SELECT TOP 20 [bookmark_user_no], [user_push_key]
+			FROM [dbo].[TB_BOOKMARK] AS b 
+			INNER JOIN [dbo].[TB_USER] AS u ON b.[bookmark_user_no] = u.[no]
+			WHERE [user_no] = #{value} ORDER BY b.[no] DESC
+	</select>
+</mapper>

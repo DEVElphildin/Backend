@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="conversationMapper">
+    <select id="conversationList" parameterType="String" resultType="com.livelyit.allcam.dto.ConversationDTO">
+  	<![CDATA[
+
+                SELECT [no],
+                    [cov_content]
+                  FROM [dbo].[TB_CONVERSATION]
+                  WHERE no BETWEEN 1 AND 7
+
+        ]]>
+  	</select>
+
+    <select id="conversationListV2" parameterType="String" resultType="com.livelyit.allcam.dto.ConversationDTO">
+  	<![CDATA[
+				 -- 직접 입력 제외
+         -- 한국어 사용자면 한글 대화목록, 아니면 영어 대화 목록 반환함
+                SELECT [no],
+                  CASE #{language_code} WHEN 'ko' THEN [cov_content] ELSE [cov_content_en] END as cov_content
+                  FROM [dbo].[TB_CONVERSATION]
+                  WHERE cov_show_flag =1
+                  AND no > 0
+
+        ]]>
+  	</select>
+
+	<select id="conversationListV3" parameterType="String" resultType="com.livelyit.allcam.dto.ConversationDTO">
+  	<![CDATA[
+				 -- 직접 입력 포함
+         -- 한국어 사용자면 한글 대화목록, 아니면 영어 대화 목록 반환함
+                SELECT [no],
+                  CASE #{language_code} WHEN 'ko' THEN [cov_content] ELSE [cov_content_en] END as cov_content
+                  FROM [dbo].[TB_CONVERSATION]
+                  WHERE cov_show_flag =1
+        ]]>
+  	</select>
+</mapper>

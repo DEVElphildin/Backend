@@ -1,0 +1,18 @@
+{
+  "hints": [],
+  "groups": [
+    {
+      "sourceType": "com.livelyit.allcam.config.DatabaseConfiguration",
+      "name": "spring.allcam.datasource",
+      "sourceMethod": "allcamDataSource()",
+      "type": "javax.sql.DataSource"
+    },
+    {
+      "sourceType": "com.livelyit.allcam.config.SMSDatabaseConfiguration",
+      "name": "spring.sms.datasource",
+      "sourceMethod": "smsDataSource()",
+      "type": "javax.sql.DataSource"
+    }
+  ],
+  "properties": []
+}

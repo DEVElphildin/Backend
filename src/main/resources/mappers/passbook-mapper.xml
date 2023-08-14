@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="passbookMapper">
+
+<!-- 무통장 입금 등록 -->
+ <insert id="insertPassBook" parameterType="hashMap" useGeneratedKeys="true" keyProperty="no" keyColumn="no">
+  	<![CDATA[
+  	INSERT INTO [dbo].[TB_PASSBOOK]([user_no],[passbook_name],[passbook_phone_number],[passbook_point],[passbook_payment],[passbook_product],[cash_receipts],
+  	[pay_point],[free_point],[passbook_free_point]) 
+    VALUES(#{user_no}, #{passbook_name}, #{passbook_phone_number}, #{passbook_point}, #{passbook_payment},#{passbook_product},#{cash_receipts},
+    #{pay_point},#{free_point},#{passbook_free_point})
+  	]]>  	
+  </insert>
+  
+  <insert id="insertPassBookCashReceipts" parameterType="hashMap" useGeneratedKeys="true" keyProperty="no" keyColumn="no">
+  	<![CDATA[
+  	INSERT INTO [dbo].[TB_PASSBOOK]([user_no],[passbook_name],[passbook_phone_number],[passbook_point],[passbook_payment],[cash_receipts],
+  		[cash_receipts_purpose],[cash_receipts_name],[cash_receipts_number],[cash_receipts_phone_nember],[passbook_product],
+  		[pay_point],[free_point],[passbook_free_point]) 
+    VALUES(#{user_no}, #{passbook_name}, #{passbook_phone_number}, #{passbook_point}, #{passbook_payment}, #{cash_receipts}, 
+    	#{cash_receipts_purpose},#{cash_receipts_name}, #{cash_receipts_number}, #{cash_receipts_phone_nember}, #{passbook_product},
+    	#{pay_point},#{free_point},#{passbook_free_point})
+  	]]>
+  </insert>
+
+    <insert id="insertPassBookV3" parameterType="hashMap" useGeneratedKeys="true" keyProperty="no" keyColumn="no">
+  	<![CDATA[
+  	INSERT INTO [dbo].[TB_PASSBOOK]([user_no],[passbook_name],[passbook_phone_number],[passbook_point],[passbook_payment],[passbook_product],[cash_receipts],[user_adid],
+  	[pay_point],[free_point],[passbook_free_point])
+    VALUES(#{user_no}, #{passbook_name}, #{passbook_phone_number}, #{passbook_point}, #{passbook_payment},#{passbook_product},#{cash_receipts}, #{user_adid},
+    #{pay_point},#{free_point},#{passbook_free_point})
+  	]]>
+  </insert>
+
+    <insert id="insertPassBookCashReceiptsV3" parameterType="hashMap" useGeneratedKeys="true" keyProperty="no" keyColumn="no">
+  	<![CDATA[
+  	INSERT INTO [dbo].[TB_PASSBOOK]([user_no],[passbook_name],[passbook_phone_number],[passbook_point],[passbook_payment],[cash_receipts],
+  		[cash_receipts_purpose],[cash_receipts_name],[cash_receipts_number],[cash_receipts_phone_nember], [user_adid], [passbook_product],
+  		[pay_point],[free_point],[passbook_free_point])
+    VALUES(#{user_no}, #{passbook_name}, #{passbook_phone_number}, #{passbook_point}, #{passbook_payment}, #{cash_receipts},
+    	#{cash_receipts_purpose},#{cash_receipts_name}, #{cash_receipts_number}, #{cash_receipts_phone_nember}, #{user_adid}, #{passbook_product},
+    	#{pay_point},#{free_point},#{passbook_free_point})
+  	]]>
+  </insert>
+  
+  <!-- 무통장입금 리스트 -->
+  <select id="selectPassbookList" parameterType="hashMap" resultType="com.livelyit.allcam.dto.PassBookDTO">
+	  <![CDATA[
+	  	SELECT pb.[no],[passbook_name]
+	      ,[passbook_phone_number]
+	      ,[passbook_point]
+	      ,[passbook_payment]
+	      ,[passbook_product]
+	      ,[passbook_confirm]
+	      ,[cash_receipts]
+	      ,[cash_receipts_purpose]
+	      ,[cash_receipts_name]
+	      ,[cash_receipts_number]
+	      ,[cash_receipts_phone_nember]
+	      ,pb.[sdate]
+	    FROM [dbo].[TB_PASSBOOK] AS pb
+	  	INNER JOIN [dbo].[TB_USER] AS u ON pb.[user_no] = u.[no] ORDER BY pb.[sdate] DESC
+  	]]>
+  </select>
+  
+  <update id="autoPassbookConfirm" parameterType="hashMap">
+  	<![CDATA[
+  		UPDATE [dbo].[TB_PASSBOOK] SET [passbook_confirm] = 1 WHERE [no] = #{value}
+  	]]>
+  </update>
+
+    <select id="autoPassbookConfirmV2" parameterType="hashMap" statementType="CALLABLE" resultType="com.livelyit.allcam.dto.AutoPassBookDTO">
+  	<![CDATA[
+             EXEC uspAutoPassbookConfirm  #{user_name}, #{user_pay}, #{result_code, mode=OUT, jdbcType=INTEGER}, #{result_msg, mode=OUT, jdbcType=NVARCHAR}
+  	]]>
+  </select>
+
+    <select id="autoEventPassbookConfirmV2" parameterType="hashMap" statementType="CALLABLE" resultType="com.livelyit.allcam.dto.AutoPassBookDTO">
+  	<![CDATA[
+             EXEC uspEventAutoPassbookConfirm  #{user_name}, #{user_pay}, #{result_code, mode=OUT, jdbcType=INTEGER}, #{result_msg, mode=OUT, jdbcType=NVARCHAR}
+  	]]>
+  </select>
+
+    <select id="autoPassbookChk" parameterType="hashMap" resultType="com.livelyit.allcam.dto.AutoPassNoDTO">
+	  <![CDATA[
+	  	SELECT TOP 1 pb.[no],[user_no],[user_nick_name],[user_point] + [user_free_point] AS [user_point],[user_point] AS [user_pay_point], [user_free_point], [passbook_payment],[user_push_key],[passbook_product],[passbook_point],[pay_point],[free_point],[passbook_free_point]
+	     FROM [dbo].[TB_PASSBOOK] AS pb
+		INNER JOIN [dbo].[TB_USER] AS u ON pb.[user_no] = u.[no]
+		WHERE [passbook_payment] = #{user_pay} AND [passbook_name] = #{user_name} AND [passbook_confirm] = 1 ORDER BY pb.[no] DESC
+  	]]>
+  </select>
+
+    <select id="getUserNoPassBook" parameterType="hashMap" resultType="int">
+	  <![CDATA[
+	  	SELECT TOP 1 user_no
+	    FROM [dbo].[TB_PASSBOOK]
+		WHERE [passbook_name] = #{user_name} AND [passbook_payment] = #{user_pay} AND [passbook_confirm] = 0
+		ORDER BY no DESC
+  	]]>
+  </select>
+</mapper>

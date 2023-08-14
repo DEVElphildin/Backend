@@ -1,0 +1,413 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="chatMapper">
+  <!-- 내 채팅 전체 -->
+   <select id="getMyChat" resultType="com.livelyit.allcam.dto.ChatDTO">
+  	<![CDATA[
+		SELECT TOP 100 c.[no]
+	      ,[from_user_no]
+	      ,[to_user_no]
+	      ,[chat_text]
+	      ,[chat_text_trans]
+	      ,[chat_type]
+	      ,[customer_no]
+	      ,[from_visible]
+	      ,[to_visible]
+	      ,[to_agree]
+	      ,CONVERT(CHAR(10), c.[sdate], 102) AS [sdate]			  
+		  ,[user_nick_name]
+		  ,[user_gender]
+		  ,[user_age]
+		  ,[user_id]
+		  ,[user_email]
+		  ,[user_nick_name]
+		  ,[user_age]
+		  ,[user_gender]
+	      ,[conversation_no]
+	      ,[user_cash]
+	      ,[user_point] + [user_free_point] AS [user_point]
+		  ,[user_star_grade]
+	      ,[user_live_average]
+	      ,[user_total_live_time]
+	      ,tu.[sdate] AS [user_sdate]
+		  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = tu.[no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+	      ,[cov_content] AS [conversation]
+	      ,[like_cnt]
+	      ,[bookmark_cnt]
+		  ,ISNULL([p_thumnail].[img_url], 'NONE') AS [partner_user_thumnail]
+		  FROM [dbo].[TB_CHAT] AS c
+		INNER JOIN [dbo].[TB_USER] AS tu ON (CASE c.[to_user_no] WHEN #{value} THEN c.[from_user_no] ELSE c.[to_user_no] END) = tu.no
+		INNER JOIN [dbo].[TB_CONVERSATION] AS cs ON tu.conversation_no = cs.no
+		OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [user_no] = tu.[no]) AS [like]
+		OUTER APPLY (SELECT COUNT(*) AS bookmark_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = tu.[no]) AS [bookmark]
+		OUTER APPLY (SELECT TOP (1) [img_url] FROM [dbo].[TB_USER_THUMNAIL] WHERE [user_no] = (CASE c.[from_user_no] WHEN #{value} THEN c.[to_user_no] ELSE c.[from_user_no] END) AND [img_type] = 'small') AS [p_thumnail]
+		WHERE c.[no] IN 
+		(SELECT MAX([no]) AS [no] FROM (SELECT MAX([no]) AS [no], [from_user_no] + [to_user_no] AS [plus_user_no] FROM [dbo].[TB_CHAT] WHERE ([to_user_no] = #{value} OR [from_user_no] = #{value}) AND (CASE WHEN [to_user_no] = #{value} THEN [to_visible] ELSE [from_visible] END) = 0 GROUP BY [from_user_no], [to_user_no] ) AS p
+		GROUP BY [plus_user_no])
+		ORDER BY [no] DESC
+  	]]>  	
+  </select>
+
+    <!-- 내 채팅 전체 - 최근 메세지가 하루 이내인 채팅방만 가져옴 v2 -->
+    <select id="getMyChatV2" resultType="com.livelyit.allcam.dto.ChatDTO">
+  	<![CDATA[
+		SELECT TOP 100 c.[no]
+	      ,[from_user_no]
+	      ,[to_user_no]
+	      ,[chat_text]
+	      ,[chat_text_trans]
+	      ,[chat_type]
+	      ,[customer_no]
+	      ,[from_visible]
+	      ,[to_visible]
+	      ,[to_agree]
+	      ,CONVERT(CHAR(10), c.[sdate], 102) AS [sdate]
+		  ,[user_nick_name]
+		  ,[user_gender]
+		  ,[user_age]
+		  ,[user_id]
+		  ,[user_email]
+		  ,[user_nick_name]
+		  ,[user_age]
+		  ,[user_gender]
+	      ,[conversation_no]
+	      ,[user_country_code]
+	      ,[user_language_code]
+	      ,[user_cash]
+	      ,[user_point] + [user_free_point] AS [user_point]
+		  ,[user_star_grade]
+	      ,[user_live_average]
+	      ,[user_total_live_time]
+	      ,tu.[sdate] AS [user_sdate]
+		  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = tu.[no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+	      ,[cov_content] AS [conversation]
+	      ,[like_cnt]
+	      ,[bookmark_cnt]
+		  ,ISNULL([p_thumnail].[img_url], 'NONE') AS [partner_user_thumnail]
+		  FROM [dbo].[TB_CHAT] AS c
+		INNER JOIN [dbo].[TB_USER] AS tu ON (CASE c.[to_user_no] WHEN #{value} THEN c.[from_user_no] ELSE c.[to_user_no] END) = tu.no
+		INNER JOIN [dbo].[TB_CONVERSATION] AS cs ON tu.conversation_no = cs.no
+		OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [user_no] = tu.[no]) AS [like]
+		OUTER APPLY (SELECT COUNT(*) AS bookmark_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = tu.[no]) AS [bookmark]
+		OUTER APPLY (SELECT TOP (1) [img_url] FROM [dbo].[TB_USER_THUMNAIL] WHERE [user_no] = (CASE c.[from_user_no] WHEN #{value} THEN c.[to_user_no] ELSE c.[from_user_no] END) AND [img_type] = 'small') AS [p_thumnail]
+		WHERE c.[no] IN
+		(SELECT MAX([no]) AS [no] FROM (SELECT MAX([no]) AS [no], [from_user_no] + [to_user_no] AS [plus_user_no] FROM [dbo].[TB_CHAT] WHERE ([to_user_no] = #{value} OR [from_user_no] = #{value}) AND (CASE WHEN [to_user_no] = #{value} THEN [to_visible] ELSE [from_visible] END) = 0 AND sdate > DATEADD(DAY,-1,GETDATE()) GROUP BY [from_user_no], [to_user_no] ) AS p
+		GROUP BY [plus_user_no])
+		ORDER BY [no] DESC
+  	]]>
+  </select>
+
+    <!-- 내 채팅 전체 v3
+     하루가 지난 채팅도 가져옴, 즐겨 찾기, 좋아요, 이모티콘 전송 여부도 채팅 메세지로 나타냄 -->
+    <select id="getMyChatV3" parameterType="com.livelyit.allcam.dto.UserInfoDTO" resultType="com.livelyit.allcam.dto.ChatDTO">
+  	<![CDATA[
+		SELECT
+		    CCC.[no]
+	      ,[from_user_no]
+	      ,[to_user_no]
+          ,CASE WHEN T.no =1 THEN [chat_text] -- 상대방이 관리자인 경우 시간과 상관없이 보여준다.
+		   ELSE CASE WHEN CCC.[sdate] > DATEADD(DAY,-1,GETDATE()) THEN
+					CASE [chat_type]
+						WHEN 0 THEN [chat_text]
+						WHEN 3 THEN
+						CASE WHEN #{user_country_code} = 'KR' THEN
+                        FORMAT(replace(chat_text, ',','') * #{present_to_cash_rate},'#,#')+' 캐시를 선물 하였습니다.'
+						ELSE 'Give '+FORMAT(replace(chat_text, ',','') * #{present_to_cash_rate},'#,#')+ ' cash' END
+						WHEN 2 THEN
+						CASE WHEN #{user_country_code} = 'KR' THEN
+						'즐겨찾기에 추가되었습니다.'
+						ELSE 'Added to bookmark' END
+						WHEN 1 THEN
+						CASE WHEN #{user_country_code}  = 'KR' THEN
+						'좋아요 하셨습니다.'
+						ELSE 'Good Clicked' END
+						WHEN 4 THEN
+						CASE WHEN #{user_country_code}  = 'KR' THEN
+						'이모티콘을 보냈습니다.'
+						ELSE 'Send Imoticon' END
+						ELSE [chat_text] END
+					ELSE 'NONE'
+				END
+			END AS chat_text
+	      ,[chat_text_trans]
+	       ,[chat_type]
+	      ,[customer_no]
+	      ,[from_visible]
+	      ,[to_visible]
+	      ,[to_agree]
+	      ,CONVERT(CHAR(10), CCC.[sdate], 102) AS [sdate]
+		  ,[user_nick_name]
+		  ,[user_gender]
+		  ,[user_age]
+		  ,[user_id]
+		  ,[user_email]
+	      ,[conversation_no]
+	      ,[user_country_code]
+	      ,[user_language_code]
+	      ,[user_cash]
+	      ,[user_point] + [user_free_point] AS [user_point]
+		  ,[user_star_grade]
+	      ,[user_live_average]
+	      ,[user_total_live_time]
+	      ,T.[sdate] AS [user_sdate]
+		  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = T.[no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+	      ,CCC.[sdate] as message_sdate
+		  ,ISNULL(T.[img_url], 'NONE') AS [partner_user_thumnail]
+        FROM
+        (SELECT TOP 40 *
+        FROM
+        (SELECT *, ROW_NUMBER() OVER (PARTITION BY partner_user_no ORDER BY no DESC) AS RankNo
+        FROM
+           (select CASE #{no} WHEN from_user_no then to_user_no WHEN to_user_no THEN from_user_no END AS partner_user_no, *
+            from tb_chat where from_user_no = #{no} or to_user_no = #{no} ) C
+        ) CC WHERE RankNo = 1 ORDER BY CC.no DESC) CCC
+        INNER JOIN  TB_USER U ON CCC.partner_user_no=U.no
+        LEFT JOIN TB_USER_THUMNAIL T ON U.no=T.user_no AND T.img_type='small'
+        WHERE U.user_gender != #{user_gender}
+        ORDER BY CCC.no DESC
+  	]]>
+  </select>
+  
+  <!-- 내 채팅 전체 -->
+   <select id="getUserChatCnt" resultType="int">
+  	<![CDATA[
+  		SELECT COUNT(*) FROM [dbo].[TB_CHAT] WHERE ([from_user_no] = #{from_user_no} AND [to_user_no] = #{to_user_no} AND [from_visible] = 0) OR ([from_user_no] = #{to_user_no} AND [to_user_no] = #{from_user_no} AND [to_visible] = 0)
+  	]]>  	
+  </select>
+
+    <!-- 채팅 과금 기준 카운트 -->
+    <select id="getUserOneDayChatCnt" resultType="int">
+  	<![CDATA[
+  		SELECT COUNT(*) FROM [dbo].[TB_CHAT]
+  		WHERE (([from_user_no] = #{from_user_no} AND [to_user_no] = #{to_user_no} AND [from_visible] = 0) OR ([from_user_no] = #{to_user_no} AND [to_user_no] = #{from_user_no} AND [to_visible] = 0))
+  		AND chat_text not in ('영상 통화 신청','부재 중 영상 통화 신청','부재 중 보이스팅 신청', '보이스팅 신청') AND sdate > DATEADD(day,-1,GETDATE())
+  	]]>
+  </select>
+  
+  <!-- 1:1 채팅 내용 -->
+   <select id="getUserChat" resultType="com.livelyit.allcam.dto.ChatDTO">
+  	<![CDATA[
+  		SELECT c.[no]
+		      ,[from_user_no]
+		      ,[to_user_no]
+		      ,[chat_text]
+		      ,[chat_text_trans]
+		      ,[customer_no]
+		      ,[from_visible]
+		      ,[to_visible]
+		      ,[to_agree]
+		      ,REPLACE(CONVERT(VARCHAR, c.[sdate], 120), '-', '.') AS [sdate]			  
+			  ,[user_nick_name]
+			  ,[user_gender]
+			  ,[user_age]
+			  ,[user_id]
+			  ,[user_email]
+			  ,[user_nick_name]
+			  ,[user_age]
+			  ,[user_gender]
+		      ,[conversation_no]
+		      ,[user_cash]
+		      ,[user_point] + [user_free_point] AS [user_point]
+			  ,[user_star_grade]
+		      ,[user_live_average]
+		      ,[user_total_live_time]
+		      ,tu.[sdate] AS [user_sdate]
+			  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = tu.[no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+		      ,[cov_content] AS [conversation]
+		      ,[like_cnt]
+		      ,[bookmark_cnt]
+			  ,ISNULL([p_thumnail].[img_url], 'NONE') AS [partner_user_thumnail]
+		  FROM [dbo].[TB_CHAT] AS c INNER JOIN [dbo].[TB_USER] AS tu ON  (CASE c.[to_user_no] WHEN #{to_user_no} THEN c.[to_user_no] ELSE c.[from_user_no] END) = tu.no
+		  INNER JOIN [dbo].[TB_CONVERSATION] AS cs ON tu.conversation_no = cs.no
+		  OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [user_no] = tu.[no]) AS [like]
+		  OUTER APPLY (SELECT COUNT(*) AS bookmark_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = tu.[no]) AS [bookmark]
+		  OUTER APPLY (SELECT TOP (1) [img_url] FROM [dbo].[TB_USER_THUMNAIL] WHERE [user_no] = #{to_user_no} AND [img_type] = 'small') AS [p_thumnail]
+		  WHERE ([from_user_no] = #{user_no} AND [to_user_no] = #{to_user_no} AND [from_visible] = 0) OR ([from_user_no] = #{to_user_no} AND [to_user_no] = #{user_no} AND [to_visible] = 0)
+		  ORDER BY [no]
+  	]]>  	
+  </select>
+
+    <!-- 1:1 채팅 내용 v2
+    최근 메세지가 하루 이내인 채팅만 가져옴-->
+    <select id="getUserChatV2" resultType="com.livelyit.allcam.dto.ChatDTO">
+  	<![CDATA[
+  		SELECT c.[no]
+		      ,[from_user_no]
+		      ,[to_user_no]
+		      ,CASE [chat_type] WHEN 3 THEN
+				CASE WHEN #{user_country_code} = 'KR' THEN
+                FORMAT(replace(chat_text, ',','') * #{present_to_cash_rate},'#,#')+' 캐시를 선물 하였습니다.' ELSE
+				 'Give '+FORMAT(replace(chat_text, ',','') * #{present_to_cash_rate},'#,#')+ ' cash' END
+				 ELSE [chat_text]
+				 END as [chat_text]
+		      ,[chat_text_trans]
+		      ,[customer_no]
+		      ,[from_visible]
+		      ,[to_visible]
+		      ,[to_agree]
+		      ,REPLACE(CONVERT(VARCHAR, c.[sdate], 120), '-', '.') AS [sdate]
+			  ,[user_nick_name]
+			  ,[user_gender]
+			  ,[user_age]
+			  ,[user_id]
+			  ,[user_email]
+			  ,[user_nick_name]
+			  ,[user_age]
+			  ,[user_gender]
+		      ,[conversation_no]
+		      ,[user_cash]
+		      ,[user_point] + [user_free_point] AS [user_point]
+			  ,[user_star_grade]
+		      ,[user_live_average]
+		      ,[user_total_live_time]
+		      ,tu.[sdate] AS [user_sdate]
+			  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = tu.[no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+		      ,[cov_content] AS [conversation]
+		      ,[like_cnt]
+		      ,[bookmark_cnt]
+			  ,ISNULL([p_thumnail].[img_url], 'NONE') AS [partner_user_thumnail]
+		  FROM [dbo].[TB_CHAT] AS c INNER JOIN [dbo].[TB_USER] AS tu ON  (CASE c.[to_user_no] WHEN #{to_user_no} THEN c.[to_user_no] ELSE c.[from_user_no] END) = tu.no
+		  INNER JOIN [dbo].[TB_CONVERSATION] AS cs ON tu.conversation_no = cs.no
+		  OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [user_no] = tu.[no]) AS [like]
+		  OUTER APPLY (SELECT COUNT(*) AS bookmark_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = tu.[no]) AS [bookmark]
+		  OUTER APPLY (SELECT TOP (1) [img_url] FROM [dbo].[TB_USER_THUMNAIL] WHERE [user_no] = #{to_user_no} AND [img_type] = 'small') AS [p_thumnail]
+		  WHERE (([from_user_no] = #{user_no} AND [to_user_no] = #{to_user_no} AND [from_visible] = 0) OR ([from_user_no] = #{to_user_no} AND [to_user_no] = #{user_no} AND [to_visible] = 0))
+		   AND c.[sdate] > DATEADD(DAY, -1, GETDATE())
+		   AND chat_type IN (0,3) -- 일반 메세지와 선물한 메세지만 가져오도록 하기
+
+		  ORDER BY [no]
+  	]]>
+  </select>
+
+    <!-- 1:1 채팅 내용 v3
+    최근 메세지가 하루가 지난 채팅도 가져옴, 즐겨 찾기, 좋아요, 이모티콘 전송 여부도 채팅 메세지로 나타냄
+    -->
+    <select id="getUserChatV3" resultType="com.livelyit.allcam.dto.ChatDTO">
+  	<![CDATA[
+  		SELECT c.[no]
+		      ,[from_user_no]
+		      ,[to_user_no]
+		      ,CASE [chat_type]
+		      WHEN 0 THEN [chat_text]
+		      WHEN 3 THEN
+		      CASE WHEN #{user_country_code} = 'KR' THEN
+                FORMAT(replace(chat_text, ',','') * #{present_to_cash_rate},'#,#')+' 캐시를 선물 하였습니다.'
+			   ELSE 'Give '+FORMAT(replace(chat_text, ',','') * #{present_to_cash_rate},'#,#')+ ' cash' END
+			  WHEN 2 THEN
+			   CASE WHEN #{user_country_code} = 'KR' THEN
+		        '즐겨찾기에 추가되었습니다.'
+			    ELSE 'Added to bookmark' END
+			    WHEN 1 THEN
+			   CASE WHEN #{user_country_code} = 'KR' THEN
+		        '좋아요 하셨습니다.'
+			    ELSE 'Good Clicked' END
+
+				 ELSE [chat_text]
+				 END as [chat_text]
+		      ,[chat_text_trans]
+		      ,[customer_no]
+		      ,[from_visible]
+		      ,[to_visible]
+		      ,[chat_type]
+		      ,[to_agree]
+		      ,REPLACE(CONVERT(VARCHAR, c.[sdate], 120), '-', '.') AS [sdate]
+			  ,[user_nick_name]
+			  ,[user_gender]
+			  ,[user_age]
+			  ,[user_id]
+			  ,[user_email]
+			  ,[user_nick_name]
+			  ,[user_age]
+			  ,[user_gender]
+		      ,[conversation_no]
+		      ,[user_cash]
+		      ,[user_point] + [user_free_point] AS [user_point]
+			  ,[user_star_grade]
+		      ,[user_live_average]
+		      ,[user_total_live_time]
+		      ,tu.[sdate] AS [user_sdate]
+			  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = tu.[no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+		      ,[cov_content] AS [conversation]
+			  ,ISNULL([p_thumnail].[img_url], 'NONE') AS [partner_user_thumnail]
+		  FROM [dbo].[TB_CHAT] AS c INNER JOIN [dbo].[TB_USER] AS tu ON  (CASE c.[to_user_no] WHEN #{to_user_no} THEN c.[to_user_no] ELSE c.[from_user_no] END) = tu.no
+		  INNER JOIN [dbo].[TB_CONVERSATION] AS cs ON tu.conversation_no = cs.no
+		  OUTER APPLY (SELECT TOP (1) [img_url] FROM [dbo].[TB_USER_THUMNAIL] WHERE [user_no] = #{to_user_no} AND [img_type] = 'small') AS [p_thumnail]
+		  WHERE (([from_user_no] = #{user_no} AND [to_user_no] = #{to_user_no} AND [from_visible] = 0) OR ([from_user_no] = #{to_user_no} AND [to_user_no] = #{user_no} AND [to_visible] = 0))
+		   AND c.[sdate] > CASE WHEN #{to_user_no} =1 THEN DATEADD(DAY, -30, GETDATE())
+		  ELSE DATEADD(DAY, -1, GETDATE()) END
+		  ORDER BY [no]
+  	]]>
+  </select>
+
+
+
+  <select id="getCallChat" parameterType="String" resultType="int">
+  	<![CDATA[
+  		SELECT count(*) as cnt FROM [dbo].[TB_CHAT] WHERE absent_room_id = #{absent_room_id}
+  	]]>
+  </select>
+
+  <!-- 채팅 발송 -->
+  <insert id="sendChat" parameterType="hashMap">
+  	<![CDATA[  	
+  		INSERT INTO [dbo].[TB_CHAT]([from_user_no],[to_user_no],[chat_text],[to_visible]) VALUES(#{from_user_no},#{to_user_no},#{chat_text},#{to_visible}) 
+  	]]>
+  </insert>
+
+    <!-- 채팅 발송 -->
+    <insert id="sendAbsentCallChat" parameterType="hashMap">
+  	<![CDATA[
+  		INSERT INTO [dbo].[TB_CHAT]([from_user_no],[to_user_no],[chat_text],[to_visible], [absent_room_id]) VALUES(#{from_user_no},#{to_user_no},#{chat_text},#{to_visible}, #{absent_room_id})
+  	]]>
+  </insert>
+
+    <!-- 채팅 +번역 발송 -->
+    <insert id="sendChatEN" parameterType="hashMap">
+  	<![CDATA[
+  		INSERT INTO [dbo].[TB_CHAT]([from_user_no],[to_user_no],[chat_text],[chat_text_trans],[to_visible]) VALUES(#{from_user_no},#{to_user_no},#{chat_text},#{chat_text_trans}, #{to_visible})
+  	]]>
+  </insert>
+
+    <!-- 채팅 메세지 타입 저장하기 -->
+    <insert id="sendChatV3" parameterType="hashMap">
+  	<![CDATA[
+  		INSERT INTO [dbo].[TB_CHAT]([from_user_no],[to_user_no],[chat_text],[chat_text_trans],[to_visible], [chat_type])
+  		VALUES(#{from_user_no},#{to_user_no},#{chat_text},#{chat_text_trans}, #{to_visible}, #{chat_type})
+  	]]>
+  </insert>
+
+    <!-- 채팅 메세지 타입 저장하기 -->
+    <insert id="sendChatCallFinish" parameterType="hashMap">
+  	<![CDATA[
+  		INSERT INTO [dbo].[TB_CHAT]([from_user_no],[to_user_no],[chat_text],[chat_text_trans],[to_visible], [chat_type], [absent_room_id])
+  		VALUES(#{from_user_no},#{to_user_no},#{chat_text},#{chat_text_trans}, #{to_visible}, #{chat_type}, #{absent_room_id})
+  	]]>
+  </insert>
+  
+  <!-- 채팅 여러개 동시 발송 -->
+  <insert id="sendGroupChat" parameterType="hashMap">
+  	<![CDATA[  	
+  		INSERT INTO [dbo].[TB_CHAT]([from_user_no],[to_user_no],[chat_text]) VALUES${value}
+  	]]>
+  </insert>
+  
+  <!-- 내가 보낸 채팅 삭제 -->
+  <update id="deleteFromChat" parameterType="hashMap">
+  	<![CDATA[  	
+  		UPDATE [dbo].[TB_CHAT] SET [from_visible] = 1 WHERE [from_user_no] = #{user_no} AND [to_user_no] in ( ${arr_to_user_no} )
+  	]]>
+  </update>
+  
+  <!-- 내가 받은 채팅 삭제 -->
+  <update id="deleteToChat" parameterType="hashMap">
+  	<![CDATA[  	
+  		UPDATE [dbo].[TB_CHAT] SET [to_visible] = 1 WHERE [to_user_no] = #{user_no} AND [from_user_no] in ( ${arr_to_user_no} )
+  	]]>  
+  </update>
+  
+  <insert id="banChatInsert" parameterType="hashMap">
+  	<![CDATA[  	
+  		INSERT INTO [dbo].[TB_BAN_TEXT]([ban_type],[ban_text]) VALUES${value}
+  	]]>
+  </insert>
+</mapper>

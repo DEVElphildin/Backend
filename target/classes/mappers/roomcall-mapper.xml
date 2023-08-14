@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="roomCallMapper">
+    <select id="getWaitList" parameterType="hashMap" resultType="com.livelyit.allcam.dto.RoomCallDTO">
+	<![CDATA[
+		SELECT A.no, A.room_status, A.user_no, A.room_name, A.sdate, B.user_nick_name,
+			(SELECT TOP 1 img_url FROM TB_USER_THUMNAIL WHERE user_no=A.user_no AND img_type='small' ORDER BY NO DESC) AS user_img
+		FROM TB_ROOM_CALL A INNER JOIN TB_USER B ON A.user_no=B.no
+		WHERE B.user_gender = #{value} AND A.room_status IN (0,1)
+		ORDER BY A.no DESC
+  	]]>
+	</select>
+
+	<insert id="insertRoomCall" parameterType="hashMap" useGeneratedKeys="true" keyProperty="no" keyColumn="no">
+  	<![CDATA[
+  		INSERT INTO [dbo].[TB_ROOM_CALL]([room_name], [user_no])
+  		VALUES(#{room_name}, #{user_no} )
+  	]]>
+	</insert>
+
+	<update id="updateStatusRoomCall" parameterType="hashMap">
+  	<![CDATA[
+		UPDATE [dbo].[TB_ROOM_CALL] SET [room_status] = #{room_status} WHERE no = #{no}
+  	]]>
+	</update>
+
+	<update id="destroyRoomCall" parameterType="hashMap">
+  	<![CDATA[
+		UPDATE [dbo].[TB_ROOM_CALL] SET [room_status] = 2, [edate] = GETDATE() WHERE [user_no] = #{value} AND [room_status] != 2
+  	]]>
+	</update>
+
+	<select id="startRoomCall" parameterType="hashMap" statementType="CALLABLE" resultType="com.livelyit.allcam.dto.RoomCallStartDTO">
+		<![CDATA[
+			EXEC uspRoomCallStart #{room_id}, #{my_user_no} , #{partner_user_no}, #{result_code, mode=OUT, jdbcType=INTEGER}, #{result_msg, mode=OUT, jdbcType=NVARCHAR}
+	  	]]>
+	</select>
+
+
+	<update id="finishRoomCall" parameterType="HashMap">
+	<![CDATA[
+		EXEC [dbo].uspRoomCallFinish #{finish_user_no}, #{room_id},#{finish_use_seconds} , #{finish_type}
+	]]>
+  	</update>
+
+</mapper>

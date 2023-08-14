@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="payMapper">
+
+  <!-- 결제 상태 등록 -->
+   <insert id="insertPay" parameterType="hashMap" useGeneratedKeys="true" keyProperty="no" keyColumn="no">
+  	<![CDATA[
+  		INSERT INTO [dbo].[TB_PAY_RESULT]([user_no],[pay_result_pay],[pay_status],[pay_result_type],[pay_result_point],[pay_result_product_name],
+  		[pay_point],[free_point])
+  		VALUES(#{user_no},#{pay_result_pay},0,#{pay_result_type},#{pay_result_point},#{pay_result_product_name},
+  		#{pay_point},#{free_point})
+  	]]>
+  </insert>
+
+    <!-- 결제 상태 등록 -->
+    <insert id="insertPayInApp" parameterType="hashMap" useGeneratedKeys="true" keyProperty="no" keyColumn="no">
+  	<![CDATA[
+  		INSERT INTO [dbo].[TB_PAY_RESULT]([user_no],[pay_result_pay],[pay_status],[pay_result_type],[pay_result_point],[pay_result_product_name],
+  		[pay_point],[free_point], [android_inapp_code])
+  		VALUES(#{user_no},#{pay_result_pay},0,#{pay_result_type},#{pay_result_point},#{pay_result_product_name},
+  		#{pay_point},#{free_point},#{android_inapp_code})
+  	]]>
+  </insert>
+  
+  <!-- 결제 상태 수정 -->
+  <update id="updatePayStatus" parameterType="hashMap">
+  	<![CDATA[
+  		UPDATE [dbo].[TB_PAY_RESULT] SET [pay_status] = #{pay_status}, [pay_daoutrx] = #{pay_daoutrx} WHERE [user_no] = #{user_no} AND [pay_result_type] = #{pay_result_type} AND [no] = #{no} AND [pay_status] = 0
+  	]]>
+  </update>
+
+    <!-- 결제 상태 수정 -->
+  <update id="updatePayStatusInApp" parameterType="hashMap">
+  	<![CDATA[
+  		UPDATE [dbo].[TB_PAY_RESULT] SET [pay_status] = #{pay_status}
+  		, [pay_daoutrx] = #{pay_daoutrx}, [android_inapp_code] = #{android_inapp_code}
+  		WHERE [user_no] = #{user_no} AND
+  		[pay_result_type] = #{pay_result_type}
+  		AND
+  		[no] = #{no}
+  		AND [pay_status] = 0
+  	]]>
+  </update>
+
+    <!-- 이벤트 결제 상태 수정 -->
+    <update id="updatePayEventStatus" parameterType="hashMap">
+    <![CDATA[
+        UPDATE [dbo].[TB_PAY_RESULT] SET [pay_status] = #{pay_status}, [pay_daoutrx] = #{pay_daoutrx}, [free_point] += #{free_point} WHERE [user_no] = #{user_no} AND [pay_result_type] = #{pay_result_type} AND [no] = #{no} AND [pay_status] = 0
+    ]]>
+    </update>
+
+    <!-- 이벤트 결제 상태 수정 -->
+    <update id="updatePayEventStatusInApp" parameterType="hashMap">
+    <![CDATA[
+        UPDATE [dbo].[TB_PAY_RESULT] SET [pay_status] = #{pay_status}, [pay_daoutrx] = #{pay_daoutrx}, [free_point] += #{free_point}, [android_inapp_code] = #{android_inapp_code} WHERE [user_no] = #{user_no} AND [pay_result_type] = #{pay_result_type} AND [no] = #{no} AND [pay_status] = 0
+    ]]>
+    </update>
+
+    <!-- 이벤트 결제 상태 수정 -->
+    <update id="updatePayNotAdIdInApp" parameterType="hashMap">
+    <![CDATA[
+        UPDATE [dbo].[TB_PAY_RESULT] SET [pay_status] = #{pay_status}, [pay_daoutrx] = #{pay_daoutrx}, [free_point] += #{free_point}, [android_inapp_code] = #{android_inapp_code} WHERE [user_no] = #{user_no} AND [pay_result_type] = #{pay_result_type} AND [no] = #{no} AND [pay_status] = 0
+    ]]>
+    </update>
+
+
+    <!-- 결제 리스트 가져오기  -->
+    <select id="getPayListCount" parameterType="int" resultType="int">
+    <![CDATA[
+        SELECT count(*) FROM [dbo].[TB_PAY_LIST] WHERE user_no = #{user_no}
+    ]]>
+    </select>
+  
+  <!-- 원스토어 정보 등록 -->
+  <update id="updatePayOneStore" parameterType="hashMap">
+  	<![CDATA[
+  		UPDATE [dbo].[TB_PAY_RESULT] SET [one_store_flag] = 0 WHERE [no] = #{pay_no}
+  	]]>
+  </update>
+  
+  <!--  결제 정보 불러오기 -->
+   <select id="getPayResult" resultType="com.livelyit.allcam.dto.PayResultDTO">
+		<![CDATA[
+			SELECT TOP 1 [no]
+			      ,[user_no]
+			      ,[pay_result_product_name]
+			      ,[pay_result_pay]
+			      ,[pay_result_point]
+			      ,[pay_status]
+			      ,[pay_result_type]
+			      ,[one_store_flag]
+			      ,[sdate]
+			      ,[pay_point]
+			      ,[free_point]
+			  FROM [dbo].[TB_PAY_RESULT] WHERE [no] = #{value}
+		]]>  	
+  </select>
+
+    <!--  상품 리스트 정보 불러오기 -->
+    <select id="getInAppProductList" resultType="com.livelyit.allcam.dto.ProductDTO">
+		<![CDATA[
+			SELECT [no]
+            ,[name]
+            ,[price]
+            ,[point]
+            ,[bonus_point]
+            ,play_store_product_id
+            ,ori_price
+            FROM [ALL_CAM].[dbo].[TB_POINT_PRODUCT] WHERE group_name = 'pd2'
+		]]>
+  </select>
+
+    <!--  미인캠 상품 리스트 정보 불러오기 -->
+    <select id="getInAppProductListMC" resultType="com.livelyit.allcam.dto.ProductDTO">
+		<![CDATA[
+			SELECT [no]
+            ,[name]
+            ,[price]
+            ,[point]
+            ,[bonus_point]
+            ,play_store_product_id
+            ,ori_price
+            FROM [ALL_CAM].[dbo].[TB_POINT_PRODUCT] WHERE group_name = 'mc'
+		]]>
+  </select>
+
+    <!--  nmc 상품 리스트 정보 불러오기 -->
+    <select id="getInAppProductListNMC" resultType="com.livelyit.allcam.dto.ProductDTO">
+		<![CDATA[
+        SELECT [no]
+                ,[name]
+                ,[price]
+                ,[point]
+                ,[bonus_point]
+                ,play_store_product_id
+                ,ori_price
+        FROM [ALL_CAM].[dbo].[TB_POINT_PRODUCT] WHERE group_name = 'nmc'
+        ]]>
+  </select>
+
+
+    <!--  결제 정보 불러오기 -->
+    <select id="getPayIdInApp" parameterType="com.livelyit.allcam.dto.PayDTO" resultType="int">
+		<![CDATA[
+			SELECT count(*) cnt
+			  FROM [dbo].[TB_PAY_RESULT]
+			  WHERE [pay_daoutrx] = #{pay_daoutrx}
+			  AND [pay_result_type] = #{pay_result_type}
+		]]>
+  </select>
+
+
+    <!-- 총 매출 테이블에 등록 -->
+  <insert id="insertPayList" parameterType="hashMap" useGeneratedKeys="true" keyProperty="no" keyColumn="no">
+	<![CDATA[
+  		INSERT INTO [dbo].[TB_PAY_LIST] ([user_no],[result_no],[result_payment_type],[result_product_name],[result_pay],[result_point],[pay_point],[free_point],[user_service_type])
+  		VALUES (#{user_no},#{result_no},#{result_payment_type},#{result_product_name},#{result_pay},#{result_point},#{pay_point},#{free_point},#{user_service_type})
+	 ]]>
+   </insert>
+
+    <!-- ios 영수증 저장 -->
+    <insert id="insertIosReceipt" parameterType="hashMap" >
+	<![CDATA[
+  		INSERT INTO [dbo].[TB_IOS_RECEIPT] ([receipt])
+  		VALUES (#{value})
+	 ]]>
+   </insert>
+
+    <select id="confirmRefund" parameterType="hashMap" resultType="String">
+		<![CDATA[
+            IF EXISTS
+                (SELECT user_no FROM tb_pay_result WHERE pay_daoutrx = #{value} AND pay_status = 1)
+            BEGIN
+                (SELECT CASE WHEN A.pay_point > B.user_point OR A.free_point > B.user_free_point THEN 'DENY' ELSE 'ALLOW' END AS result FROM
+
+                (SELECT user_no, pay_point,free_point FROM tb_pay_result WHERE pay_daoutrx = #{value} AND pay_status = 1) A
+                INNER JOIN TB_USER B ON A.user_no=B.no)
+            END
+            ELSE
+            BEGIN
+            SELECT 'DENY' AS result
+            END
+		]]>
+  </select>
+
+
+</mapper>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="versionMapper">
+
+	<select id="versionCheckV2" parameterType="hashMap" resultType="com.livelyit.allcam.dto.VersionDTO">
+  	<![CDATA[
+	  	SELECT TOP 1 [no]
+	      ,[version]
+	      ,[version_description]
+	      ,[version_url]
+	      ,[user_no]
+	      ,[sdate]
+	      ,[os_type]
+	      ,[service_type]
+	      ,[store_type]
+	      ,[release_flag]
+	  	FROM [dbo].[TB_VERSION] WHERE [os_type] = #{os_type} AND [service_type] = #{service_type} AND [store_type] = #{store_type} ORDER BY [no] DESC
+  	]]>
+  	</select>
+  	
+  	<select id="getBanText" parameterType="hashMap" resultType="com.livelyit.allcam.dto.BanTextDTO">
+  	<![CDATA[ 
+	  	SELECT [no],[ban_type],[ban_text] FROM [dbo].[TB_BAN_TEXT] WHERE [ban_type] = #{value} AND [ban_visible] = 0
+  	]]>
+  	</select>
+  	
+  	<select id="getMainBanner" parameterType="hashMap" resultType="string">
+  	<![CDATA[ 
+	  	SELECT TOP 1 [banner_url] FROM [dbo].[TB_EVENT_MAIN_BANNER] ORDER BY [no] DESC
+  	]]>
+  	</select>
+
+	<select id="getMainBannerV2" parameterType="hashMap" resultType="com.livelyit.allcam.dto.MainBannerDTO">
+  	<![CDATA[
+	  	SELECT [banner_url],[link_url] FROM [dbo].[TB_EVENT_MAIN_BANNER]
+		WHERE [start_time] <= GETDATE() AND [end_time] >= GETDATE() AND display_flag = 1
+		ORDER BY [no] DESC
+  	]]>
+  	</select>
+
+	<select id="getMainBannerV3" parameterType="hashMap" resultType="com.livelyit.allcam.dto.MainBannerDTO">
+  	<![CDATA[
+	  	SELECT [banner_url], [link_url], [click_flag] FROM [dbo].[TB_EVENT_MAIN_BANNER]
+		WHERE [start_time] <= GETDATE() AND [end_time] >= GETDATE() AND display_flag = 1
+		AND target_gender IN (#{user_gender}, 'all') AND service_type IN (#{user_service_type}, 'all')
+		ORDER BY [no] DESC
+  	]]>
+  	</select>
+
+</mapper>

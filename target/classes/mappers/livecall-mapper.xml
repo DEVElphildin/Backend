@@ -1,0 +1,1124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="liveCallMapper">
+	<delete id="deleteWaiting" parameterType="hashMap">
+		<![CDATA[
+			DELETE FROM [dbo].[TB_WATING_ROOM] WHERE [user_no] = #{value}
+		]]> 
+	</delete>
+
+	<insert id="insertWaiting" parameterType="hashMap">
+		<![CDATA[
+			INSERT INTO [dbo].[TB_WATING_ROOM]([user_no]) VALUES(#{value})
+		]]>
+	</insert>
+
+  <select id="getWatingUser" parameterType="hashMap" resultType="com.livelyit.allcam.dto.WatingUserDTO">
+  	<![CDATA[
+	  	SELECT wr.[no]
+		      ,CONCAT(CASE WHEN [user_part_time] = 2 THEN 0 ELSE 1 END,'_', wr.[no]) AS [order_key]
+		      ,[user_no]
+		      ,[connect_user_no]
+		      ,wr.[sdate]
+			  ,[user_id]
+		      ,[user_email]
+		      ,[user_nick_name]
+		      ,[user_age]
+		      ,[user_gender]
+		      ,[conversation_no]
+		      ,[user_cash]
+		      ,[user_point] + [user_free_point] AS [user_point]
+			  ,[cov_content] AS [conversation]
+			  ,[user_star_grade]
+			  ,[user_live_average]
+			  ,[user_total_live_time]
+			  ,[user_country_code]
+			  ,[user_language_code]
+			  ,[like].[like_cnt]
+			  ,[bookmark].[bookmark_cnt]
+			  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = wr.[user_no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+		  FROM (SELECT no, user_no, connect_user_no, sdate FROM (
+							SELECT no, user_no , connect_user_no ,sdate, ROW_NUMBER() OVER (PARTITION BY user_no ORDER BY no DESC) AS RankNo
+							FROM TB_WATING_ROOM ) AS l
+							WHERE RankNo = 1 ) AS wr
+		  INNER JOIN [dbo].[TB_USER] AS u ON wr.user_no = u.no
+		  INNER JOIN [dbo].[TB_CONVERSATION] AS c ON [conversation_no] = c.[no]
+		  OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [to_user_no] = wr.[user_no]) AS [like]
+		  OUTER APPLY (SELECT COUNT(*) AS bookmark_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = wr.[user_no]) AS [bookmark]
+		  WHERE [user_gender] != (SELECT [user_gender] FROM [dbo].[TB_USER] WHERE [no] = #{user_no})
+		  AND [user_part_time] != 3 AND [user_type] = 0 AND ((user_gender ='남성' AND wr.sdate > DATEADD(dd, -1, GETDATE()) OR user_gender = '여성'))
+  	]]>
+  	<if test='order.equals("rank")'><![CDATA[ ORDER BY [order_key] DESC  ]]></if>
+  	<if test='order.equals("new")'><![CDATA[ ORDER BY [order_key] DESC ]]></if>
+  </select>
+
+    <select id="getWatingUserV2" parameterType="hashMap" resultType="com.livelyit.allcam.dto.WatingUserDTO">
+        <![CDATA[
+	  	SELECT wr.[no]
+		      ,CONCAT(CASE WHEN [user_part_time] = 2 THEN 0 ELSE 1 END,'_', wr.[no]) AS [order_key]
+		      ,[user_no]
+		      ,[connect_user_no]
+		      ,wr.[sdate]
+			  ,[user_id]
+		      ,[user_email]
+		      ,[user_nick_name]
+		      ,[user_age]
+		      ,[user_gender]
+		      ,[conversation_no]
+		      ,[user_cash]
+		      ,[user_point] + [user_free_point] AS [user_point]
+			  ,[cov_content] AS [conversation]
+			  ,[user_star_grade]
+			  ,[user_live_average]
+			  ,[user_total_live_time]
+			  ,[user_country_code]
+			  ,[user_language_code]
+			  ,[like].[like_cnt]
+			  ,[bookmark].[bookmark_cnt]
+			  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = wr.[user_no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+		  FROM (SELECT no, user_no, connect_user_no, sdate FROM (
+							SELECT no, user_no , connect_user_no ,sdate, ROW_NUMBER() OVER (PARTITION BY user_no ORDER BY no DESC) AS RankNo
+							FROM TB_WATING_ROOM ) AS l
+							WHERE RankNo = 1 ) AS wr
+		  INNER JOIN [dbo].[TB_USER] AS u ON wr.user_no = u.no
+		  INNER JOIN [dbo].[TB_CONVERSATION] AS c ON [conversation_no] = c.[no]
+		  OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [to_user_no] = wr.[user_no]) AS [like]
+		  OUTER APPLY (SELECT COUNT(*) AS bookmark_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = wr.[user_no]) AS [bookmark]
+		  WHERE [user_gender] != (SELECT [user_gender] FROM [dbo].[TB_USER] WHERE [no] = #{user_no})
+		  AND u.user_push_key != 'NONE'
+		  AND [user_part_time] != 3 AND [user_type] = 0 AND ((user_gender ='남성' AND wr.sdate > DATEADD(dd, -1, GETDATE()) OR user_gender = '여성'))
+  	]]>
+        <if test='country_kind.equals("overseas")'><![CDATA[ AND u.[user_country_code] != 'KR'  ]]></if>
+        <if test='country_kind.equals("domestic")'><![CDATA[ AND u.[user_country_code] = 'KR'  ]]></if>
+        <if test='order.equals("rank")'><![CDATA[ ORDER BY [order_key] DESC  ]]></if>
+        <if test='order.equals("new")'><![CDATA[ ORDER BY [order_key] DESC ]]></if>
+    </select>
+
+	<select id="getWatingUserMC" parameterType="hashMap" resultType="com.livelyit.allcam.dto.WatingUserDTO">
+		<![CDATA[
+		SELECT
+			WR.[no]
+			,WR.[user_no]
+			,WR.[connect_user_no]
+			,U.[sdate]
+			,U.[user_id]
+			,U.[user_email]
+			,U.[user_nick_name]
+			,U.[user_age]
+			,U.[user_gender]
+			,U.[conversation_no]
+			,U.[user_cash]
+			,U.[user_point] + U.[user_free_point] AS [user_point]
+			,CASE WHEN U.[conversation_no] = 0 THEN U.[conversation_txt] ELSE
+				CASE #{user_language_code} WHEN 'ko' THEN c.[cov_content] ELSE  [cov_content_en] END
+			END AS [conversation]
+			,U.[user_star_grade]
+			,U.[user_live_average]
+			,U.[user_total_live_time]
+			,U.[user_country_code]
+			,U.[user_language_code]
+			,[like].[like_cnt]
+			,[bookmark].[bookmark_cnt]
+			,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = WR.[user_no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+		FROM (
+			]]>
+			<if test='waiting_gender.equals("여성")'>
+				<![CDATA[
+			 		(SELECT * FROM TB_USER WHERE user_gender = '여성' AND user_part_time != 2 AND  user_push_key != 'NONE' AND user_type = 0 ) U
+					INNER JOIN (SELECT no, user_no, connect_user_no, sdate
+								FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY user_no ORDER BY no DESC) AS RankNo
+										FROM TB_WATING_ROOM
+										WHERE connect_user_no = -1 AND sdate > dateadd(day, -30, getdate())) TMP_WR
+								WHERE RankNo = 1) WR ON U.no=WR.user_no
+			  	]]>
+			</if>
+			<if test='waiting_gender.equals("남성")'>
+				<![CDATA[
+			 		(SELECT * FROM tb_user WHERE user_gender = '남성' AND user_part_time != 2 AND (user_point+user_free_point) > 1200 AND user_push_key != 'NONE' AND user_type = 0 ) U
+					INNER JOIN (SELECT no, user_no, connect_user_no, sdate
+								FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY user_no ORDER BY no DESC) AS RankNo
+										FROM TB_WATING_ROOM
+										WHERE connect_user_no = -1 AND sdate > dateadd(day, -30, getdate())) TMP_WR
+								WHERE RankNo = 1) WR ON U.no=WR.user_no
+			 	]]>
+			</if>
+		<![CDATA[
+			INNER JOIN [dbo].[TB_CONVERSATION] AS c ON U.[conversation_no] = c.[no]
+			OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [to_user_no] = U.[no]) AS [like]
+			OUTER APPLY (SELECT COUNT(*) AS bookmark_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = U.[no]) AS [bookmark]
+			OUTER APPLY (SELECT SUM([use_cnt])*10 AS point_cnt FROM [TB_USE_HISTORY] AS h WHERE h.user_no = U.[no]) AS total_get_point
+		)
+		ORDER BY WR.sdate DESC
+  	]]>
+	</select>
+
+
+	<select id="getWatingUserV3Man" parameterType="hashMap" resultType="com.livelyit.allcam.dto.WatingUserDTO">
+		<![CDATA[
+	  	 SELECT wr.[no]
+		      ,CONCAT(CASE WHEN [user_part_time] = 2 THEN 0 ELSE 1 END,'_', wr.[no]) AS [order_key]
+		      ,wr.[user_no]
+		      ,[connect_user_no]
+		      ,wr.[sdate]
+			  ,[user_id]
+		      ,[user_email]
+		      ,[user_nick_name]
+		      ,[user_age]
+		      ,[user_gender]
+		      ,[conversation_no]
+		      ,[user_cash]
+		      ,[user_point] + [user_free_point] AS [user_point]
+			  ,CASE WHEN [conversation_no] = 0 THEN [conversation_txt] ELSE
+					CASE #{user_language_code} WHEN 'ko' THEN [cov_content] ELSE  [cov_content_en]
+					END
+				END AS [conversation]
+			  ,[user_star_grade]
+			  ,[user_live_average]
+			  ,[user_total_live_time]
+			  ,[user_country_code]
+			  ,[user_language_code]
+			  ,[like].[like_cnt]
+			  ,[bookmark].[bookmark_cnt]
+			  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = wr.[user_no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+
+		  FROM (SELECT no, user_no, connect_user_no, sdate FROM (
+							SELECT no, user_no , connect_user_no ,sdate, ROW_NUMBER() OVER (PARTITION BY user_no ORDER BY no DESC) AS RankNo
+							FROM TB_WATING_ROOM ) AS l
+							WHERE RankNo = 1 ) AS wr
+		  INNER JOIN [dbo].[TB_USER] AS u ON wr.user_no = u.no
+		  INNER JOIN [dbo].[TB_CONVERSATION] AS c ON [conversation_no] = c.[no]
+		  OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [to_user_no] = wr.[user_no]) AS [like]
+		  OUTER APPLY (SELECT COUNT(*) AS bookmark_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = wr.[user_no]) AS [bookmark]
+		OUTER APPLY (SELECT SUM([use_cnt])*10 AS point_cnt FROM [TB_USE_HISTORY] AS h WHERE h.user_no = wr.[user_no]) AS total_get_point
+		  WHERE [user_gender] = '남성'
+		  AND u.user_push_key != 'NONE'
+		  AND [user_part_time] = 0  -- 새내기, 테스트 아닌 사람 (여자는 알바 1 까지 포함해야 함)
+		  AND [user_type] = 0  -- 관리자, 탈퇴, 정지 아닌 사람들
+		  AND wr.sdate > DATEADD(dd, -1, GETDATE())
+		  AND [user_service_type] != 'meincam'
+  	]]>
+		<if test='country_kind.equals("overseas")'><![CDATA[ AND u.[user_country_code] != #{user_country_code}  ]]></if>
+		<if test='country_kind.equals("domestic")'><![CDATA[ AND u.[user_country_code] = #{user_country_code}  ]]></if>
+		<if test='order.equals("rank")'><![CDATA[ order by point_cnt desc  ]]></if>
+		<if test='order.equals("new")'><![CDATA[ ORDER BY sdate DESC ]]></if>
+	</select>
+
+
+	<select id="getWatingUserV3Woman" parameterType="hashMap" resultType="com.livelyit.allcam.dto.WatingUserDTO">
+		<![CDATA[
+	  	SELECT wr.[no]
+		      --,CONCAT(CASE WHEN [user_part_time] = 2 THEN 0 ELSE 1 END,'_', wr.[no]) AS [order_key]
+		      ,[user_no]
+			  ,[connect_user_no]
+			  ,wr.[sdate]
+			  ,[user_id]
+		      ,[user_email]
+		      ,[user_nick_name]
+		      ,[user_age]
+		      ,[user_gender]
+		      ,[conversation_no]
+		      ,[user_cash]
+		      ,[user_point] + [user_free_point] AS [user_point]
+			  ,CASE WHEN [conversation_no] = 0 THEN [conversation_txt] ELSE
+					CASE #{user_language_code} WHEN 'ko' THEN [cov_content] ELSE  [cov_content_en]
+					END
+				END AS [conversation]
+			  ,[user_star_grade]
+			  ,[user_live_average]
+			  ,[user_total_live_time]
+			  ,[user_country_code]
+			  ,[user_language_code]
+			  ,[like].[like_cnt]
+			  ,[bookmark].[bookmark_cnt]
+			  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = wr.[user_no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+		  FROM (SELECT no, user_no, connect_user_no, sdate FROM (
+							SELECT no, user_no , connect_user_no ,sdate, ROW_NUMBER() OVER (PARTITION BY user_no ORDER BY no DESC) AS RankNo
+							FROM TB_WATING_ROOM ) AS l
+							WHERE RankNo = 1 ) AS wr
+		  INNER JOIN [dbo].[TB_USER] AS u ON wr.user_no = u.no
+		  INNER JOIN [dbo].[TB_CONVERSATION] AS c ON [conversation_no] = c.[no]
+		  OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [to_user_no] = wr.[user_no]) AS [like]
+		  OUTER APPLY (SELECT COUNT(*) AS bookmark_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = wr.[user_no]) AS [bookmark]
+		  OUTER APPLY (SELECT SUM([use_cnt]) AS get_cash_cnt FROM [dbo].[TB_USE_HISTORY] as hi WHERE hi.use_content = '영상통화 적립' AND hi.user_no = u.no) AS TOTAL
+		  OUTER APPLY (SELECT TOP(1) sdate FROM TB_LOGIN AS login WHERE login.user_no = u.no order by sdate desc) AS lo
+		  WHERE u.[user_gender] = '여성'
+		  AND u.user_push_key != 'NONE'
+		  AND [user_part_time] != 3 -- 새내기가 아닌 경우
+		  AND [user_type] = 0 -- 일반 사용자인 경우(정지, 탈퇴한 사람이 아닌 경우)
+		  AND u.in_list = 0 -- 대기자만 가져오기
+		  AND DATEDIFF(HOUR, lo.sdate, GETDATE()) < 2000 -- 1000시간 전까지 접속했던 유저만 가져오기
+		  AND [user_service_type] != 'meincam'
+	]]>
+		<if test='country_kind.equals("overseas")'><![CDATA[ AND u.[user_country_code] != #{user_country_code}  ]]></if>
+		<if test='country_kind.equals("domestic")'><![CDATA[ AND u.[user_country_code] = #{user_country_code}  ]]></if>
+		<![CDATA[
+		  ORDER BY CASE WHEN user_part_time = 1 OR user_part_time = 0 THEN 1 -- 일반, 알바가 정렬에 1순위
+		  WHEN user_part_time = 2 THEN 2 END  -- 테스트가 정렬에 2순위
+		  , CASE WHEN user_country_code = 'KR' THEN 1 WHEN user_country_code != 'KR' THEN 2 ELSE 3 END ASC
+  	]]>
+		<if test='order.equals("rank")'><![CDATA[ , TOTAL.get_cash_cnt DESC  ]]></if> -- 최근 로그인 정렬 추가하기
+		<if test='order.equals("new")'><![CDATA[ , lo.sdate DESC ]]></if> -- 랭킹 정렬 추가하기
+	</select>
+
+
+	<select id="getWatingUserV4Man" parameterType="hashMap" resultType="com.livelyit.allcam.dto.WatingUserDTO">
+		<![CDATA[
+	  	 SELECT wr.[no]
+		      ,CONCAT(CASE WHEN [user_part_time] = 2 THEN 0 ELSE 1 END,'_', wr.[no]) AS [order_key]
+		      ,wr.[user_no]
+		      ,[connect_user_no]
+		      ,lo.[sdate]
+			  ,[user_id]
+		      ,[user_email]
+		      ,[user_nick_name]
+		      ,[user_age]
+		      ,[user_gender]
+		      ,[conversation_no]
+		      ,[user_cash]
+		      ,[user_point] + [user_free_point] AS [user_point]
+			  ,CASE WHEN [conversation_no] = 0 THEN [conversation_txt] ELSE
+					CASE #{user_language_code} WHEN 'ko' THEN [cov_content] ELSE  [cov_content_en]
+					END
+				END AS [conversation]
+			  ,[user_star_grade]
+			  ,[user_live_average]
+			  ,[user_total_live_time]
+			  ,[user_country_code]
+			  ,[user_language_code]
+			  ,[like].[like_cnt]
+			  ,[bookmark].[bookmark_cnt]
+			  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = wr.[user_no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+
+		  FROM (SELECT no, user_no, connect_user_no, sdate FROM (
+							SELECT no, user_no , connect_user_no ,sdate, ROW_NUMBER() OVER (PARTITION BY user_no ORDER BY no DESC) AS RankNo
+							FROM TB_WATING_ROOM ) AS l
+							WHERE RankNo = 1 ) AS wr
+		  INNER JOIN [dbo].[TB_USER] AS u ON wr.user_no = u.no
+		  INNER JOIN [dbo].[TB_CONVERSATION] AS c ON [conversation_no] = c.[no]
+		  OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [to_user_no] = wr.[user_no]) AS [like]
+		  OUTER APPLY (SELECT COUNT(*) AS bookmark_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = wr.[user_no]) AS [bookmark]
+		  OUTER APPLY (SELECT TOP(1) sdate FROM TB_LOGIN AS login WHERE login.user_no = u.no order by sdate desc) AS lo
+		OUTER APPLY (SELECT SUM([use_cnt])*10 AS point_cnt FROM [TB_USE_HISTORY] AS h WHERE h.user_no = wr.[user_no]) AS total_get_point
+		WHERE [user_gender] = '남성'
+			AND user_part_time IN (0,1,2)
+			AND u.user_push_key != 'NONE' -- 로그아웃한 사용자 제외
+			AND [user_type] = 0  -- 관리자, 탈퇴, 정지 아닌 사람들
+			AND u.in_list = 0 -- 대기자만 가져오기
+			AND DATEDIFF(HOUR, lo.sdate, GETDATE()) < 24 -- 24시간 전까지 접속했던 유저만 가져오기
+			AND [user_service_type] != 'meincam'
+  	]]>
+		<if test='country_kind.equals("overseas")'><![CDATA[ AND u.[user_country_code] != #{user_country_code}  ]]></if>
+		<if test='country_kind.equals("domestic")'><![CDATA[ AND u.[user_country_code] = #{user_country_code}  ]]></if>
+		<![CDATA[
+		  ORDER BY CASE WHEN user_part_time IN(0,1) THEN 1 -- 일반, 알바, 새내기가 정렬에 1순위
+		  WHEN user_part_time = 2 THEN 2 END  -- 테스트가 정렬에 2순위
+  	]]>
+		<if test='order.equals("rank")'><![CDATA[ , point_cnt desc  ]]></if>
+		<if test='order.equals("new")'><![CDATA[ , lo.sdate DESC ]]></if>
+	</select>
+
+
+	<select id="getWatingUserV4Woman" parameterType="hashMap" resultType="com.livelyit.allcam.dto.WatingUserDTO">
+		<![CDATA[
+	  	SELECT wr.[no]
+		      --,CONCAT(CASE WHEN [user_part_time] = 2 THEN 0 ELSE 1 END,'_', wr.[no]) AS [order_key]
+		      ,[user_no]
+			  ,[connect_user_no]
+			  ,lo.[sdate]
+			  ,[user_id]
+		      ,[user_email]
+		      ,[user_nick_name]
+		      ,[user_age]
+		      ,[user_gender]
+			 ,[conversation_no]
+		      ,[user_cash]
+		      ,[user_point] + [user_free_point] AS [user_point]
+			  ,CASE WHEN [conversation_no] = 0 THEN [conversation_txt] ELSE
+					CASE #{user_language_code} WHEN 'ko' THEN [cov_content] ELSE  [cov_content_en]
+					END
+				END AS [conversation]
+			  ,[user_star_grade]
+			  ,[user_live_average]
+			  ,[user_total_live_time]
+			  ,[user_country_code]
+			  ,[user_language_code]
+			  ,[like].[like_cnt]
+			  ,[bookmark].[bookmark_cnt]
+			  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = wr.[user_no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+		  FROM (SELECT no, user_no, connect_user_no, sdate FROM (
+							SELECT no, user_no , connect_user_no ,sdate, ROW_NUMBER() OVER (PARTITION BY user_no ORDER BY no DESC) AS RankNo
+							FROM TB_WATING_ROOM ) AS l
+							WHERE RankNo = 1 ) AS wr
+		  INNER JOIN [dbo].[TB_USER] AS u ON wr.user_no = u.no
+		  INNER JOIN [dbo].[TB_CONVERSATION] AS c ON [conversation_no] = c.[no]
+		  OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [to_user_no] = wr.[user_no]) AS [like]
+		  OUTER APPLY (SELECT COUNT(*) AS bookmark_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = wr.[user_no]) AS [bookmark]
+		  OUTER APPLY (SELECT SUM([use_cnt]) AS get_cash_cnt FROM [dbo].[TB_USE_HISTORY] as hi WHERE hi.use_content = '영상통화 적립' AND hi.user_no = u.no) AS TOTAL
+		  OUTER APPLY (SELECT TOP(1) sdate FROM TB_LOGIN AS login WHERE login.user_no = u.no order by sdate desc) AS lo
+		  WHERE u.[user_gender] = '여성'
+		  AND u.user_push_key != 'NONE'
+		  AND user_part_time IN (0,1,2)
+		  AND [user_type] = 0 -- 일반 사용자인 경우(정지, 탈퇴한 사람이 아닌 경우)
+		  AND u.in_list = 0 -- 대기자만 가져오기
+		  AND DATEDIFF(HOUR, lo.sdate, GETDATE()) < 2000 -- 1000시간 전까지 접속했던 유저만 가져오기
+		  AND [user_service_type] != 'meincam'
+	]]>
+		<if test='country_kind.equals("overseas")'><![CDATA[ AND u.[user_country_code] != #{user_country_code}  ]]></if>
+		<if test='country_kind.equals("domestic")'><![CDATA[ AND u.[user_country_code] = #{user_country_code}  ]]></if>
+		<![CDATA[
+		  ORDER BY CASE WHEN user_part_time IN(0,1) THEN 1 -- 일반, 알바, 새내기가 정렬에 1순위
+		  WHEN user_part_time = 2 THEN 2 END  -- 테스트가 정렬에 2순
+		  , CASE WHEN user_country_code = 'KR' THEN 1 WHEN user_country_code != 'KR' THEN 2 ELSE 3 END ASC
+  	]]>
+		<if test='order.equals("rank")'><![CDATA[ , TOTAL.get_cash_cnt DESC  ]]></if> -- 최근 로그인 정렬 추가하기
+		<if test='order.equals("new")'><![CDATA[ , lo.sdate DESC ]]></if> -- 랭킹 정렬 추가하기
+	</select>
+
+
+	<select id="getWatingUserV4ManVoice" parameterType="hashMap" resultType="com.livelyit.allcam.dto.WatingUserDTO">
+		<![CDATA[
+	  	 SELECT wr.[no]
+		      ,CONCAT(CASE WHEN [user_part_time] = 2 THEN 0 ELSE 1 END,'_', wr.[no]) AS [order_key]
+		      ,wr.[user_no]
+		      ,[connect_user_no]
+		      ,lo.[sdate]
+			  ,[user_id]
+		      ,[user_email]
+		      ,[user_nick_name]
+		      ,[user_age]
+		      ,[user_gender]
+		      ,[conversation_no]
+		      ,[user_cash]
+		      ,[user_point] + [user_free_point] AS [user_point]
+			  ,CASE WHEN [conversation_no] = 0 THEN [conversation_txt] ELSE
+					CASE #{user_language_code} WHEN 'ko' THEN [cov_content] ELSE  [cov_content_en]
+					END
+				END AS [conversation]
+			  ,[user_star_grade]
+			  ,[user_live_average]
+			  ,[user_total_live_time]
+			  ,[user_country_code]
+			  ,[user_language_code]
+			  ,[like].[like_cnt]
+			  ,[bookmark].[bookmark_cnt]
+			  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = wr.[user_no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+
+		  FROM (SELECT no, user_no, connect_user_no, sdate FROM (
+							SELECT no, user_no , connect_user_no ,sdate, ROW_NUMBER() OVER (PARTITION BY user_no ORDER BY no DESC) AS RankNo
+							FROM TB_WATING_ROOM ) AS l
+							WHERE RankNo = 1 ) AS wr
+		  INNER JOIN [dbo].[TB_USER] AS u ON wr.user_no = u.no
+		  INNER JOIN [dbo].[TB_CONVERSATION] AS c ON [conversation_no] = c.[no]
+		  OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [to_user_no] = wr.[user_no]) AS [like]
+		  OUTER APPLY (SELECT COUNT(*) AS bookmark_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = wr.[user_no]) AS [bookmark]
+		  OUTER APPLY (SELECT TOP(1) sdate FROM TB_LOGIN AS login WHERE login.user_no = u.no order by sdate desc) AS lo
+		OUTER APPLY (SELECT SUM([use_cnt])*10 AS point_cnt FROM [TB_USE_HISTORY] AS h WHERE h.user_no = wr.[user_no]) AS total_get_point
+		  WHERE [user_gender] = '남성'
+		  AND user_part_time IN (0,1,2)
+		  AND u.user_push_key != 'NONE' -- 로그아웃한 사용자 제외
+		  AND [user_type] = 0  -- 관리자, 탈퇴, 정지 아닌 사람들
+		  AND u.in_list = 0 -- 대기자만 가져오기
+		  AND DATEDIFF(HOUR, lo.sdate, GETDATE()) < 3 -- 3시간 전까지 접속했던 유저만 가져오기
+		  AND u.user_service_type = 'allcam'
+
+  	]]>
+		<if test='country_kind.equals("overseas")'><![CDATA[ AND u.[user_country_code] != #{user_country_code}  ]]></if>
+		<if test='country_kind.equals("domestic")'><![CDATA[ AND u.[user_country_code] = #{user_country_code}  ]]></if>
+		<![CDATA[
+		  ORDER BY CASE WHEN user_part_time IN(0,1) THEN 1 -- 일반, 알바, 새내기가 정렬에 1순위
+		  WHEN user_part_time = 2 THEN 2 END  -- 테스트가 정렬에 2순위
+  	]]>
+		<if test='order.equals("rank")'><![CDATA[ , point_cnt desc  ]]></if>
+		<if test='order.equals("new")'><![CDATA[ , lo.sdate DESC ]]></if>
+	</select>
+
+
+	<select id="getWatingUserV4WomanVoice" parameterType="hashMap" resultType="com.livelyit.allcam.dto.WatingUserDTO">
+		<![CDATA[
+	  	SELECT wr.[no]
+		      ,CONCAT(CASE WHEN [user_part_time] = 2 THEN 0 ELSE 1 END,'_', wr.[no]) AS [order_key]
+		      ,[user_no]
+			  ,[connect_user_no]
+			  ,lo.[sdate]
+			  ,[user_id]
+		      ,[user_email]
+		      ,[user_nick_name]
+		      ,[user_age]
+		      ,[user_gender]
+		      ,[conversation_no]
+		      ,[user_cash]
+		      ,[user_point] + [user_free_point] AS [user_point]
+			  ,CASE WHEN [conversation_no] = 0 THEN [conversation_txt] ELSE
+					CASE #{user_language_code} WHEN 'ko' THEN [cov_content] ELSE  [cov_content_en]
+					END
+				END AS [conversation]
+			  ,[user_star_grade]
+			  ,[user_live_average]
+			  ,[user_total_live_time]
+			  ,[user_country_code]
+			  ,[user_language_code]
+			  ,[like].[like_cnt]
+			  ,[bookmark].[bookmark_cnt]
+			  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = wr.[user_no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+		  FROM (SELECT no, user_no, connect_user_no, sdate FROM (
+							SELECT no, user_no , connect_user_no ,sdate, ROW_NUMBER() OVER (PARTITION BY user_no ORDER BY no DESC) AS RankNo
+							FROM TB_WATING_ROOM ) AS l
+							WHERE RankNo = 1 ) AS wr
+		  INNER JOIN [dbo].[TB_USER] AS u ON wr.user_no = u.no
+		  INNER JOIN [dbo].[TB_CONVERSATION] AS c ON [conversation_no] = c.[no]
+		  OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [to_user_no] = wr.[user_no]) AS [like]
+		  OUTER APPLY (SELECT COUNT(*) AS bookmark_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = wr.[user_no]) AS [bookmark]
+		  OUTER APPLY (SELECT SUM([use_cnt]) AS get_cash_cnt FROM [dbo].[TB_USE_HISTORY] as hi WHERE hi.use_content = '영상통화 적립' AND hi.user_no = u.no) AS TOTAL
+		  OUTER APPLY (SELECT TOP(1) sdate FROM TB_LOGIN AS login WHERE login.user_no = u.no order by sdate desc) AS lo
+		  WHERE u.[user_gender] = '여성'
+		  AND u.user_push_key != 'NONE'
+		  AND user_part_time IN (0,1,2)
+		  AND [user_type] = 0 -- 일반 사용자인 경우(정지, 탈퇴한 사람이 아닌 경우)
+		  AND u.in_list = 0 -- 대기자만 가져오기
+		  AND DATEDIFF(HOUR, lo.sdate, GETDATE()) < 1000 -- 1000시간 전까지 접속했던 유저만 가져오기
+		  AND u.call_type = 1
+		  AND [user_service_type] != 'meincam'
+	]]>
+		<if test='country_kind.equals("overseas")'><![CDATA[ AND u.[user_country_code] != #{user_country_code}  ]]></if>
+		<if test='country_kind.equals("domestic")'><![CDATA[ AND u.[user_country_code] = #{user_country_code}  ]]></if>
+		<![CDATA[
+		  ORDER BY CASE WHEN user_part_time IN(0,1) THEN 1 -- 일반, 알바, 새내기가 정렬에 1순위
+		  WHEN user_part_time = 2 THEN 2 END  -- 테스트가 정렬에 2순위
+  	]]>
+		<if test='order.equals("rank")'><![CDATA[ , TOTAL.get_cash_cnt DESC  ]]></if> -- 최근 로그인 정렬 추가하기
+		<if test='order.equals("new")'><![CDATA[ , lo.sdate DESC ]]></if> -- 랭킹 정렬 추가하기
+	</select>
+
+	<select id="getWatingUserNonMember" parameterType="hashMap" resultType="com.livelyit.allcam.dto.WatingUserDTO">
+		<![CDATA[
+	  	SELECT top 20 wr.[no]
+		      ,CONCAT(CASE WHEN [user_part_time] = 2 THEN 0 ELSE 1 END,'_', wr.[no]) AS [order_key]
+		      ,[user_no]
+			  ,[connect_user_no]
+			  ,wr.[sdate]
+			  ,[user_id]
+		      ,[user_email]
+		      ,[user_nick_name]
+		      ,[user_age]
+		      ,[user_gender]
+		      ,[conversation_no]
+		      ,[user_cash]
+		      ,[user_point] + [user_free_point] AS [user_point]
+			  ,CASE WHEN [conversation_no] = 0 THEN [conversation_txt] ELSE
+					CASE #{user_language_code} WHEN 'ko' THEN [cov_content] ELSE  [cov_content_en]
+					END
+				END AS [conversation]
+			  ,[user_star_grade]
+			  ,[user_live_average]
+			  ,[user_total_live_time]
+			  ,[user_country_code]
+			  ,[user_language_code]
+			  ,[like].[like_cnt]
+			  ,[bookmark].[bookmark_cnt]
+			  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = wr.[user_no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+		  FROM (SELECT no, user_no, connect_user_no, sdate FROM (
+							SELECT no, user_no , connect_user_no ,sdate, ROW_NUMBER() OVER (PARTITION BY user_no ORDER BY no DESC) AS RankNo
+							FROM TB_WATING_ROOM ) AS l
+							WHERE RankNo = 1 ) AS wr
+		  INNER JOIN [dbo].[TB_USER] AS u ON wr.user_no = u.no
+		  INNER JOIN [dbo].[TB_CONVERSATION] AS c ON [conversation_no] = c.[no]
+		  OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [to_user_no] = wr.[user_no]) AS [like]
+		  OUTER APPLY (SELECT COUNT(*) AS bookmark_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = wr.[user_no]) AS [bookmark]
+		  OUTER APPLY (SELECT SUM([use_cnt]) AS get_cash_cnt FROM [dbo].[TB_USE_HISTORY] as hi WHERE hi.use_content = '영상통화 적립' AND hi.user_no = u.no) AS TOTAL
+		  WHERE u.[user_gender] = '여성'
+		  AND u.user_push_key != 'NONE'
+		  AND [user_part_time] != 3 -- 새내기가 아닌 경우
+		  AND [user_type] = 0 -- 일반 사용자인 경우(정지, 탈퇴한 사람이 아닌 경우)
+		  AND [user_service_type] != 'meincam'
+	]]>
+		<if test='country_kind.equals("overseas")'><![CDATA[ AND u.[user_country_code] != #{user_country_code}  ]]></if>
+		<if test='country_kind.equals("domestic")'><![CDATA[ AND u.[user_country_code] = #{user_country_code}  ]]></if>
+		<![CDATA[
+		  ORDER BY CASE WHEN user_part_time = 1 OR user_part_time = 0 THEN 1 -- 일반, 알바가 정렬에 1순위
+		  WHEN user_part_time = 2 THEN 2 END  -- 테스트가 정렬에 2순위
+  	]]>
+		<if test='order.equals("rank")'><![CDATA[ , TOTAL.get_cash_cnt DESC  ]]></if> -- 최근 로그인 정렬 추가하기
+		<if test='order.equals("new")'><![CDATA[ , sdate DESC ]]></if> -- 랭킹 정렬 추가하기
+	</select>
+	
+	<select id="getRandomImage" parameterType="hashMap" resultType="com.livelyit.allcam.dto.RandomImageDTO">
+	<![CDATA[
+		SELECT TOP 3 no, image_text, image_type, image_url, hit_count FROM TB_RANDOM_CALL_IMAGE
+		 WHERE target_gender = #{target_gender} ORDER BY NEWID()
+		]]>
+
+	</select>
+
+	<select id="getNewbieUserList" parameterType="hashMap" resultType="com.livelyit.allcam.dto.NewbieUserDTO">
+		<![CDATA[
+	  	SELECT wr.[no]
+		      ,[user_no]
+		      ,[connect_user_no]
+		      ,wr.[sdate]
+			  ,[user_id]
+		      ,[user_email]
+		      ,[user_nick_name]
+		      ,[user_age]
+		      ,[user_gender]
+		      ,[conversation_no]
+		      ,[user_cash]
+		      ,[user_heart]
+		      ,[user_point] + [user_free_point] AS [user_point]
+			  ,[cov_content] AS [conversation]
+			  ,[user_star_grade]
+			  ,[user_live_average]
+			  ,[user_total_live_time]
+			   ,[user_language_code]
+			  ,[user_country_code]
+			  ,[user_newbie_time]
+			  ,[user_part_time]
+			  ,[like].[like_cnt]
+			  ,[bookmark].[bookmark_cnt]
+			  ,[my_like].[cnt] AS [my_like_chk]
+			  ,[my_bookmark].[cnt] AS [my_bookmark_chk]
+			  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = wr.[user_no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+		  FROM (SELECT no, user_no, connect_user_no, sdate FROM (
+							SELECT no, user_no , connect_user_no ,sdate, ROW_NUMBER() OVER (PARTITION BY user_no ORDER BY no DESC) AS RankNo
+							FROM TB_WATING_ROOM ) AS l
+							WHERE RankNo = 1 ) AS wr
+		  INNER JOIN [dbo].[TB_USER] AS u ON wr.user_no = u.no
+		  INNER JOIN [dbo].[TB_CONVERSATION] AS c ON [conversation_no] = c.[no]
+		  OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [to_user_no] = wr.[user_no]) AS [like]
+		  OUTER APPLY (SELECT COUNT(*) AS bookmark_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = wr.[user_no]) AS [bookmark]
+		  OUTER APPLY (SELECT COUNT(*) AS cnt FROM [dbo].[TB_BOOKMARK] WHERE [user_no] = #{user_no} AND [bookmark_user_no] = wr.[user_no]) AS [my_bookmark]
+		  OUTER APPLY (SELECT COUNT(*) AS cnt FROM [dbo].[TB_LIKE] WHERE [user_no] = #{user_no} AND [to_user_no] = wr.[user_no] AND ([sdate] BETWEEN CONVERT(CHAR(10), getDate(), 102) AND CONVERT(CHAR(10), getDate(), 102) + ' 23:59:59')) AS [my_like]
+		  WHERE [user_gender] = '여성' AND [user_part_time] = 3 AND [user_type] = 0
+			AND u.user_push_key != 'NONE'
+		  AND u.[user_service_type] != 'meincam'
+		  AND (user_newbie_time is NULL OR
+		   (user_newbie_time != '2200' AND user_newbie_time != '2301' AND (left([user_newbie_time],2) <= left(CONVERT(CHAR(8),GETDATE(),108),2)
+                AND   left(CONVERT(CHAR(8),GETDATE(),108),2) < right([user_newbie_time], 2))
+          OR (user_newbie_time = '2200' AND left(CONVERT(CHAR(8),GETDATE(),108),2) IN ('22','23'))
+          OR (user_newbie_time = '2301' AND left(CONVERT(CHAR(8),GETDATE(),108),2) IN ('23','00')))
+		  )
+          ORDER BY no DESC
+  	]]>
+	</select>
+
+
+	<select id="getNewbieUserListV2" parameterType="hashMap" resultType="com.livelyit.allcam.dto.NewbieUserDTO">
+		<![CDATA[
+	  	SELECT wr.[no]
+		      ,[user_no]
+		      ,[connect_user_no]
+		      ,wr.[sdate]
+			  ,[user_id]
+		      ,[user_email]
+		      ,[user_nick_name]
+		      ,[user_age]
+		      ,[user_gender]
+		      ,[conversation_no]
+		      ,[user_cash]
+		      ,[user_heart]
+		      ,[user_point] + [user_free_point] AS [user_point]
+			  ,CASE #{user_language_code} WHEN 'ko' THEN [cov_content] ELSE  [cov_content_en] END AS [conversation]
+			  ,[user_star_grade]
+			  ,[user_live_average]
+			  ,[user_total_live_time]
+			   ,[user_language_code]
+			  ,[user_country_code]
+			  ,[user_newbie_time]
+			  ,[user_part_time]
+			  ,[like].[like_cnt]
+			  ,[bookmark].[bookmark_cnt]
+			  ,[my_like].[cnt] AS [my_like_chk]
+			  ,[my_bookmark].[cnt] AS [my_bookmark_chk]
+			  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = wr.[user_no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+		  FROM (SELECT no, user_no, connect_user_no, sdate FROM (
+							SELECT no, user_no , connect_user_no ,sdate, ROW_NUMBER() OVER (PARTITION BY user_no ORDER BY no DESC) AS RankNo
+							FROM TB_WATING_ROOM ) AS l
+							WHERE RankNo = 1 ) AS wr
+		  INNER JOIN [dbo].[TB_USER] AS u ON wr.user_no = u.no
+		  INNER JOIN [dbo].[TB_CONVERSATION] AS c ON [conversation_no] = c.[no]
+		  OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [to_user_no] = wr.[user_no]) AS [like]
+		  OUTER APPLY (SELECT COUNT(*) AS bookmark_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = wr.[user_no]) AS [bookmark]
+		  OUTER APPLY (SELECT COUNT(*) AS cnt FROM [dbo].[TB_BOOKMARK] WHERE [user_no] = #{user_no} AND [bookmark_user_no] = wr.[user_no]) AS [my_bookmark]
+		  OUTER APPLY (SELECT COUNT(*) AS cnt FROM [dbo].[TB_LIKE] WHERE [user_no] = #{user_no} AND [to_user_no] = wr.[user_no] AND ([sdate] BETWEEN CONVERT(CHAR(10), getDate(), 102) AND CONVERT(CHAR(10), getDate(), 102) + ' 23:59:59')) AS [my_like]
+		  WHERE [user_gender] = '여성' AND [user_part_time] = 3 AND [user_type] = 0
+		AND u.user_push_key != 'NONE'
+		  AND u.[user_service_type] != 'meincam'
+		  AND (user_newbie_time is NULL OR
+		   (user_newbie_time != '2200' AND user_newbie_time != '2301' AND (left([user_newbie_time],2) <= left(CONVERT(CHAR(8),GETDATE(),108),2)
+                AND   left(CONVERT(CHAR(8),GETDATE(),108),2) < right([user_newbie_time], 2))
+          OR (user_newbie_time = '2200' AND left(CONVERT(CHAR(8),GETDATE(),108),2) IN ('22','23'))
+          OR (user_newbie_time = '2301' AND left(CONVERT(CHAR(8),GETDATE(),108),2) IN ('23','00')))
+		  )
+          ORDER BY no DESC
+  	]]>
+	</select>
+
+	<select id="getNewUserList" parameterType="hashMap" resultType="com.livelyit.allcam.dto.NewbieUserDTO">
+		<![CDATA[
+	  	SELECT TOP 20 wr.[no]
+		      ,[user_no]
+		      ,[connect_user_no]
+		      ,wr.[sdate]
+			  ,[user_id]
+		      ,[user_email]
+		      ,[user_nick_name]
+		      ,[user_age]
+		      ,[user_gender]
+		      ,[conversation_no]
+		      ,[user_cash]
+		      ,[user_heart]
+		      ,[user_point] + [user_free_point] AS [user_point]
+			  ,CASE #{user_language_code} WHEN 'ko' THEN [cov_content] ELSE  [cov_content_en] END AS [conversation]
+			  ,[user_star_grade]
+			  ,[user_live_average]
+			  ,[user_total_live_time]
+			   ,[user_language_code]
+			  ,[user_country_code]
+			  ,[user_newbie_time]
+			  ,[user_part_time]
+			  ,[like].[like_cnt]
+			  ,[bookmark].[bookmark_cnt]
+			  ,[my_like].[cnt] AS [my_like_chk]
+			  ,[my_bookmark].[cnt] AS [my_bookmark_chk]
+			  ,ISNULL('[' + (SELECT STUFF((SELECT ',{"img_type":"'+RTRIM([img_type])+ '","img_url":"'+RTRIM([img_url])+'","img_width":"'+RTRIM([img_width])+'"'+',"img_height":"'+RTRIM([img_height])+'"}' FROM [dbo].[TB_USER_THUMNAIL] AS t WHERE t.[user_no] = wr.[user_no]  FOR XML PATH('')),1,1,'')) + ']','NONE')  AS [user_imgs]
+		  FROM (SELECT no, user_no, connect_user_no, sdate FROM (
+							SELECT no, user_no , connect_user_no ,sdate, ROW_NUMBER() OVER (PARTITION BY user_no ORDER BY no DESC) AS RankNo
+							FROM TB_WATING_ROOM ) AS l
+							WHERE RankNo = 1 ) AS wr
+		  INNER JOIN [dbo].[TB_USER] AS u ON wr.user_no = u.no
+		  INNER JOIN [dbo].[TB_CONVERSATION] AS c ON [conversation_no] = c.[no]
+		  OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [to_user_no] = wr.[user_no]) AS [like]
+		  OUTER APPLY (SELECT COUNT(*) AS bookmark_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = wr.[user_no]) AS [bookmark]
+		  OUTER APPLY (SELECT COUNT(*) AS cnt FROM [dbo].[TB_BOOKMARK] WHERE [user_no] = #{user_no} AND [bookmark_user_no] = wr.[user_no]) AS [my_bookmark]
+		  OUTER APPLY (SELECT COUNT(*) AS cnt FROM [dbo].[TB_LIKE] WHERE [user_no] = #{user_no} AND [to_user_no] = wr.[user_no] AND ([sdate] BETWEEN CONVERT(CHAR(10), getDate(), 102) AND CONVERT(CHAR(10), getDate(), 102) + ' 23:59:59')) AS [my_like]
+		  WHERE [user_gender] = #{waiting_gender}
+		  AND u.user_push_key != 'NONE' AND u.user_type = 0
+		AND u.[user_country_code] = 'KR'
+		  AND u.[sdate] > CONVERT(CHAR(10),getdate()-30,23)
+          ORDER BY no DESC
+  	]]>
+	</select>
+
+
+  <select id="login" parameterType="hashMap" resultType="com.livelyit.allcam.dto.LoginDTO">
+  	<![CDATA[
+	  	SELECT [no]
+	  		  ,[user_id]
+		      ,[user_email]
+		      ,[user_nick_name]
+		      ,[user_age]
+		      ,[user_gender]
+		      ,[conversation_no]
+		      ,[user_thumnail]
+		      ,[sdate]
+		      ,[user_alarm_popup]
+		      ,[user_alarm_push]
+		      ,[user_alarm_bookmark]
+		      ,[user_alarm_sound]
+		      ,[user_alarm_bive]
+		      ,[user_push_key]
+		      ,[user_voip_key]
+		      ,[user_point] + [user_free_point] AS [user_point]
+		      ,[user_cash]
+		      ,[user_heart]
+		  FROM [dbo].[TB_USER] WHERE [user_id] = #{user_id}
+  	]]>
+  </select>
+
+  <insert id="join" parameterType="hashMap" useGeneratedKeys="true" keyProperty="no" keyColumn="no">
+  	<![CDATA[
+  		INSERT INTO [dbo].[TB_USER]([user_email], [user_nick_name], [user_age], [user_gender], [conversation_no], [user_id], [user_push_key]) VALUES(#{user_email}, #{user_nick_name}, #{user_age}, #{user_gender}, #{conversation_no}, #{user_id}, #{user_push_key})
+  	]]>
+  </insert>
+
+  <select id="nickNameChk" parameterType="String" resultType="int">
+  	<![CDATA[
+		SELECT COUNT(*) FROM [dbo].[TB_USER] WHERE [user_nick_name] = #{user_auth_key}
+  	]]>
+  </select>
+
+	<select id="partnerChk" parameterType="int" resultType="int">
+  	<![CDATA[
+		 SELECT COUNT(*) AS timediffrence
+  		 FROM [dbo].[TB_LIVE_ROOM] WHERE ([my_user_no] = #{partner_user_no} or [partner_user_no] = #{partner_user_no})
+		 AND (room_status = 0 or room_status = 1)
+		 AND DATEDIFF(SS, sdate, GETDATE()) < 15
+  	]]>
+  </select>
+
+	<select id="getMyUserNo" parameterType="String" resultType="com.livelyit.allcam.dto.UserInfoDTO">
+  	<![CDATA[
+		 SELECT rm.my_user_no as no, us.user_gender
+  		 FROM [dbo].[TB_LIVE_ROOM] as rm
+  		 INNER JOIN TB_USER as us ON rm.my_user_no = us.no WHERE [room_id] = #{room_id}
+  	]]>
+  </select>
+
+	<!-- 부재중 전화만 가져오기-->
+	<select id="absentCallCount" parameterType="int" resultType="int">
+  	<![CDATA[
+		    SELECT count(case when finish_type IN (6,5) then 1 end) as absent_call_count --영통, 보이스팅,랜덤통화에서 취소된 것 포함
+		    FROM TB_LIVE_ROOM
+  			WHERE my_user_no = #{user_no}
+  			AND DATEDIFF(dd, sdate, GETDATE()) < 1 -- 오늘 날짜만
+  			AND room_status = -1 -- 방이 취소된 경우
+  	]]>
+  </select>
+
+
+	<update id="setPushKey" parameterType="hashMap">
+  	<![CDATA[
+		UPDATE [dbo].[TB_USER] SET [user_push_key] = #{user_push_key} WHERE [no] = #{no}
+  	]]>
+  </update>
+
+	<update id="setVoipPushKey" parameterType="hashMap">
+  	<![CDATA[
+		UPDATE [dbo].[TB_USER] SET [user_voip_key] = #{user_voip_key} WHERE [no] = #{no}
+  	]]>
+  </update>
+
+  <update id="updateRoomStatus" parameterType="hashMap">
+  	<![CDATA[
+  		UPDATE [dbo].[TB_LIVE_ROOM] SET [room_status] = #{room_status}, [finish_type] = #{finish_type} WHERE [room_id] = #{room_id}
+	 ]]>
+  </update>
+
+	<update id="updateRandomRoomStatus" parameterType="hashMap">
+  	<![CDATA[
+  		UPDATE [dbo].[TB_LIVE_ROOM] SET [room_status] = #{room_status}, [finish_type] = #{finish_type}, [finish_user_no] = #{finish_user_no} WHERE [room_id] = #{room_id}
+	 ]]>
+  </update>
+
+  <insert id="insertRoomStatus" parameterType="hashMap">
+  	<![CDATA[
+  		INSERT INTO [dbo].[TB_LIVE_ROOM]([room_id], [room_type], [room_status], [my_push_key], [partner_push_key],[my_user_no],[partner_user_no]) VALUES(#{room_id}, #{room_type}, #{room_status}, #{myPushKey}, #{partnerPushKey},#{my_user_no},#{partner_user_no})
+	 ]]>
+  </insert>
+
+  <select id="getRoomPushKey" parameterType="hashMap" resultType="com.livelyit.allcam.dto.RoomPushKeyDTO">
+  	<![CDATA[
+		SELECT [my_push_key] ,[partner_push_key], [my_user_no],[partner_user_no] FROM [dbo].[TB_LIVE_ROOM] WHERE [room_id] = #{value}
+  	]]>
+  </select>
+
+	<select id="getRoomPushKeyFlag" parameterType="hashMap" resultType="com.livelyit.allcam.dto.RoomPushKeyDTO">
+  	<![CDATA[
+		SELECT [my_push_key] ,[partner_push_key], [my_user_no],[partner_user_no], [absent_push_flag] FROM [dbo].[TB_LIVE_ROOM] WHERE [room_id] = #{value}
+  	]]>
+  </select>
+
+	<update id="updateRoomPushFlag" parameterType="String">
+  	<![CDATA[
+  		UPDATE [dbo].[TB_LIVE_ROOM] SET [absent_push_flag] = 1 WHERE [room_id] = #{room_id}
+	 ]]>
+  </update>
+
+	<select id="getRoomInfo" parameterType="hashMap" resultType="com.livelyit.allcam.dto.CallChkUserDTO">
+  	<![CDATA[
+		SELECT [my_user_no], [partner_user_no] FROM [dbo].[TB_LIVE_ROOM] WHERE [room_id] = #{room_id}
+  	]]>
+  </select>
+
+  <insert id="insertStar" parameterType="HashMap">
+	  <![CDATA[
+		INSERT INTO [dbo].[TB_LIVE_STAR_GRADE]([user_no],[to_user_no],[star_cnt])
+		VALUES(#{user_no}, #{to_user_no}, #{star_cnt})
+	  ]]>
+  </insert>
+
+  <update id="setLiveTime" parameterType="HashMap">
+	  <![CDATA[
+		UPDATE [dbo].[TB_LIVE_ROOM] SET [room_status] = #{room_status}
+		]]>
+	<if test="start_time != null"><![CDATA[ , [start_time] = #{start_time} ]]></if>
+	<if test="end_time != null"><![CDATA[ , [end_time] = #{end_time} ]]></if>
+	<![CDATA[
+		WHERE [room_id] = #{room_id}
+	  ]]>
+  </update>
+
+  <select id="getEndTime" parameterType="hashMap" resultType="String">
+  	<![CDATA[
+		SELECT [end_time] FROM [dbo].[TB_LIVE_ROOM] WHERE [room_id] = #{room_id}
+  	]]>
+  </select>
+
+  <select id="getRoomTime" parameterType="hashMap" resultType="com.livelyit.allcam.dto.RoomTimeDTO">
+  	<![CDATA[
+		SELECT [room_status], CONVERT(CHAR(19), [start_time], 20) AS [start_time], CONVERT(CHAR(19), [end_time], 20) AS [end_time] FROM [dbo].[TB_LIVE_ROOM] WHERE [room_id] = #{value}
+  	]]>
+  </select>
+
+  <select id="getLiveUsePoint" parameterType="hashMap" resultType="int">
+  	<![CDATA[
+		SELECT ISNULL(SUM([use_cnt]), 0) AS [use_cnt] FROM [dbo].[TB_USE_HISTORY] WHERE [user_no] = #{user_no} AND [use_etc] = #{room_id}
+  	]]>
+  </select>
+
+  <insert id="insertUseHistory" parameterType="HashMap">
+	  <![CDATA[
+		INSERT INTO [dbo].[TB_USE_HISTORY]([use_type],[use_content],[use_cnt],[user_no],[use_etc],[use_etc_user_no])
+		VALUES(#{use_type},#{use_content},#{use_cnt},#{user_no},#{use_etc},#{use_etc_user_no})
+	  ]]>
+  </insert>
+
+  <select id="getUseList" parameterType="hashMap" resultType="com.livelyit.allcam.dto.UseHistoryDTO">
+  	<![CDATA[
+		SELECT h.[no]
+		      ,[use_type]
+		      ,[use_content]
+		      ,[use_cnt]
+		      ,[user_no]
+		      ,[use_etc_user_no]
+		      ,[use_etc]
+		      ,CONVERT(VARCHAR, h.[sdate], 120) AS [sdate]
+			  ,ISNULL([user_nick_name], '') AS [user_nick_name]
+		  FROM [dbo].[TB_USE_HISTORY] AS h
+		  LEFT JOIN [dbo].[TB_USER] AS u ON h.[use_etc_user_no] = u.[no]
+		  WHERE user_no = #{user_no}
+		]]>
+	<if test="use_type == 0"><![CDATA[ AND ([use_type] = 0 OR [use_type] = 2) ]]></if>
+	<if test="use_type == 1"><![CDATA[ AND [use_type] = 1 ]]></if>
+	<![CDATA[
+		  ORDER BY h.[no] DESC
+  	]]>
+  </select>
+
+	<!-- 통화 가능한 랜덤 통화 목록을 가져온다.	-->
+	<select id="getRandomCall" parameterType="String" resultType="com.livelyit.allcam.dto.CallChkUserDTO">
+		<![CDATA[
+			SELECT ROOM.room_id, ROOM.my_user_no
+			FROM TB_LIVE_ROOM as ROOM
+			INNER JOIN TB_USER AS US ON ROOM.my_user_no = US.no
+			WHERE US.user_gender = #{user_gender}
+			AND ROOM.room_type = 3
+			AND ROOM.room_status = 0
+			AND ROOM.my_user_no = ROOM.partner_user_no
+			AND DATEDIFF(SS, ROOM.sdate, GETDATE()) < 15 ORDER BY ROOM.sdate ASC
+  	]]>
+	</select>
+
+	<!-- 통화 중, 통화 대기 중인 랜덤 통화 목록을 가져온다.	-->
+	<update id="fixErrorCall" parameterType="HashMap">
+		<![CDATA[
+			UPDATE TB_LIVE_ROOM SET room_status = -4 WHERE no IN
+			(SELECT no
+			FROM TB_LIVE_ROOM
+			WHERE (room_status = 0 OR room_status = 1) AND (my_user_no = ${no} OR partner_user_no = ${no})
+			)
+  	]]>
+	</update>
+
+	<!-- 랜덤 영상통화 방의 상대방을 바꾼다. -->
+	<update id="updateRoomPartner" parameterType="HashMap">
+  	<![CDATA[
+  		UPDATE TB_LIVE_ROOM SET partner_user_no = #{partner_user_no}
+  		WHERE room_id = #{room_id}
+  	]]>
+	</update>
+
+	<update id="updateRandomCallRoom" parameterType="HashMap">
+		<![CDATA[
+		UPDATE TB_LIVE_ROOM SET room_status = #{room_status}
+		, partner_user_no = #{partner_user_no}
+		, partner_push_key = #{partner_push_key}
+		]]>
+		<if test="start_time != null"><![CDATA[ , [start_time] = #{start_time} ]]></if>
+		<if test="end_time != null"><![CDATA[ , [end_time] = #{end_time} ]]></if>
+		<![CDATA[
+		WHERE [room_id] = #{room_id}
+	  ]]>
+	</update>
+
+  <select id="getCallHistoryList" parameterType="hashMap" resultType="com.livelyit.allcam.dto.CallHistoryDTO">
+  	<![CDATA[
+		SELECT [room_id]
+			  ,CASE WHEN [my_user_no] = #{user_no}
+			        THEN [partner_user_no]
+			        ELSE [my_user_no]
+			         END AS [user_no]
+			  ,CASE WHEN [my_user_no] = #{user_no}
+			        THEN (SELECT ISNULL([user_nick_name], '') FROM [dbo].[TB_USER] WHERE [no] = [partner_user_no])
+			        ELSE (SELECT ISNULL([user_nick_name], '') FROM [dbo].[TB_USER] WHERE [no] = [my_user_no])
+			         END AS [user_nick_name]
+		      ,CONVERT(CHAR(11), [start_time], 23) + CONVERT(CHAR(5), [start_time], 108) as [start_time]
+			  ,CASE WHEN r.finish_use_seconds > r.other_use_seconds AND r.other_use_seconds = 0
+			  THEN r.finish_use_seconds
+			  ELSE r.other_use_seconds END AS [call_history_second]
+		  FROM [dbo].[TB_LIVE_ROOM] AS r
+		 INNER JOIN [dbo].[TB_USE_HISTORY] AS h ON h.[use_etc] = r.[room_id] AND h.[use_type] = 1
+		 WHERE ([start_time] <> '2012-10-06' AND [end_time] <> '2012-10-06')
+		   AND ([my_user_no] = #{user_no} OR [partner_user_no] = #{user_no})
+		   AND [room_status] = 2
+		 ORDER BY [start_time] DESC
+  	]]>
+  </select>
+
+	<!-- 랜덤 이미지의 클릭 수를 증가시킨다-->
+	<update id="updateRandomImageHit" parameterType="hashMap">
+  	<![CDATA[
+  		UPDATE TB_RANDOM_CALL_IMAGE SET hit_count = hit_count+1
+  		WHERE no = #{image_no}
+  	]]>
+	</update>
+
+	<select id="getHeartHistoryList" parameterType="hashMap" resultType="com.livelyit.allcam.dto.HeartHistoryDTO">
+  	<![CDATA[
+		SELECT A.room_id, A.user_no, A.user_nick_name, A.start_time, A.call_history_second, A.use_type, A.heart_cnt, A.use_content
+		FROM
+		(
+		SELECT [room_id]
+			  ,CASE WHEN [my_user_no] = #{user_no}
+			        THEN [partner_user_no]
+			        ELSE [my_user_no]
+			         END AS [user_no]
+			  ,CASE WHEN [my_user_no] = #{user_no}
+			        THEN (SELECT ISNULL([user_nick_name], '') FROM [dbo].[TB_USER] WHERE [no] = [partner_user_no])
+			        ELSE (SELECT ISNULL([user_nick_name], '') FROM [dbo].[TB_USER] WHERE [no] = [my_user_no])
+			         END AS [user_nick_name]
+		      ,CONVERT(CHAR(11), [start_time], 23) + CONVERT(CHAR(5), [start_time], 108) as [start_time]
+			  ,(h.[use_cnt] / 10) AS [call_history_second]
+			  ,h.use_type
+			  ,h.use_cnt AS heart_cnt
+			  ,h.use_content
+		  FROM [dbo].[TB_LIVE_ROOM] AS r
+		 INNER JOIN [dbo].[TB_USE_HISTORY] AS h ON h.[use_etc] = r.[room_id]
+		 WHERE ([start_time] <> '2012-10-06' AND [end_time] <> '2012-10-06')
+		   AND ([my_user_no] = #{user_no} OR [partner_user_no] = #{user_no})
+		   AND [room_status] = 2 AND h.[use_type] IN (4,5)
+		   UNION ALL
+           SELECT '' as room_id
+           , -1 as user_no
+           , '' as user_nick_name
+           , sdate as start_time
+           , '' as call_history_second
+           , 40 as use_type
+           , BB.heart_amount AS heart_cnt
+           , BB.item_name AS use_content
+           FROM TB_HEART_EXCHANGE AA LEFT JOIN TB_HEART_EXCHANGE_ITEM BB ON AA.exchange_item_no=BB.no
+           WHERE AA.user_no = #{user_no}
+           ) A ORDER BY A.[start_time] DESC
+
+  	]]>
+  </select>
+
+  <update id="isLive" parameterType="HashMap">
+	  <![CDATA[
+		UPDATE [dbo].[TB_WATING_ROOM] SET [connect_user_no] = #{connect_user_no} WHERE [user_no] = #{user_no}
+		]]>
+  </update>
+
+  <select id="liveInfo" parameterType="hashMap" resultType="com.livelyit.allcam.dto.LiveInfoDTO">
+  	<![CDATA[
+		SELECT u.[no] AS [user_no]
+		      ,[user_id]
+		      ,[user_email]
+		      ,[user_nick_name]
+		      ,[user_age]
+		      ,[user_gender]
+		      ,[conversation_no]
+		      ,[call_type]
+		      ,[user_cash]
+		      ,[user_heart]
+		      ,[user_point] + [user_free_point] AS [user_point]
+		      ,[user_star_grade]
+		      ,[user_live_average]
+		      ,[user_total_live_time]
+		      ,[user_type]
+		      ,[user_part_time]
+		      ,[user_newbie_time]
+		      ,[user_country_code]
+		      ,[user_language_code]
+		      ,u.[sdate]
+			  ,[cov_content] AS [conversation]
+			  ,[like].[like_cnt]
+			  ,[bookmark].[bookmark_cnt]
+			  ,ISNULL([user_img].[img_url], 'NONE') AS [img_url]
+			  ,ISNULL([wating_room].[connect_user_no], -1) AS [connect_user_no]
+			  ,[my_like].[cnt] AS [my_like_chk]
+			  ,[my_bookmark].[cnt] AS [my_bookmark_chk]
+		  FROM [dbo].[TB_USER] AS u
+		  INNER JOIN [dbo].[TB_CONVERSATION] AS c ON u.conversation_no = c.no
+		  OUTER APPLY (SELECT COUNT(*) AS like_cnt FROM [dbo].[TB_LIKE] WHERE [to_user_no] = u.[no]) AS [like]
+		  OUTER APPLY (SELECT COUNT(*) AS bookmark_cnt FROM [dbo].[TB_BOOKMARK] WHERE [bookmark_user_no] = u.[no]) AS [bookmark]
+		  OUTER APPLY (SELECT TOP 1 [img_url] FROM [dbo].[TB_USER_THUMNAIL] WHERE [user_no] = u.[no] AND [img_type] = 'middle') AS [user_img]
+		  OUTER APPLY (SELECT TOP 1 [connect_user_no] FROM [dbo].[TB_WATING_ROOM] WHERE [user_no] = u.[no]) AS [wating_room]
+		  OUTER APPLY (SELECT COUNT(*) AS cnt FROM [dbo].[TB_BOOKMARK] WHERE [user_no] = #{user_no} AND [bookmark_user_no] = u.[no]) AS [my_bookmark]
+		  OUTER APPLY (SELECT COUNT(*) AS cnt FROM [dbo].[TB_LIKE] WHERE [user_no] = #{user_no} AND [to_user_no] = u.[no] AND ([sdate] BETWEEN CONVERT(CHAR(10), getDate(), 102) AND CONVERT(CHAR(10), getDate(), 102) + ' 23:59:59')) AS [my_like]
+		  WHERE u.[no] = #{to_user_no}
+  	]]>
+  </select>
+
+  <!-- 회원별 평균 통화시간 (초단위) -->
+   <select id="selectLiveCallAverage" parameterType="hashMap" resultType="com.livelyit.allcam.dto.LiveCallAverageTimeDTO">
+	   SELECT [time]/[cnt] AS [average_time], b.[my_user_no] FROM 
+			(SELECT  SUM(CONVERT(BIGINT,[call_time])) AS [time],COUNT([my_user_no]) AS [cnt], a.[my_user_no] FROM
+				(SELECT DATEDIFF(SECOND, [start_time], [end_time]) AS [call_time], [my_user_no] FROM [dbo].[TB_LIVE_ROOM] WHERE [room_status] = 2) AS a 
+			GROUP BY [my_user_no]) AS b
+   </select>
+
+	<!-- 회원별 총 통화시간 (초단위) -->
+	<select id="selectLiveCallTotall" parameterType="hashMap" resultType="com.livelyit.allcam.dto.LiveCallTotalTimeDTO">
+		<![CDATA[
+			 SELECT  SUM(CONVERT(BIGINT,[call_time])) AS [total_time], a.[my_user_no] FROM
+					(SELECT DATEDIFF(SECOND, [start_time], [end_time]) AS [call_time], [my_user_no] FROM [dbo].[TB_LIVE_ROOM] WHERE [room_status] = 2) AS a
+			 GROUP BY [my_user_no]
+		]]>
+	</select>
+
+		<!-- 회원별 평균별점 -->
+	<select id="selectLiveCallStar" parameterType="hashMap" resultType="com.livelyit.allcam.dto.LiveStarGradeAverageDTO">
+		<![CDATA[
+			SELECT [start]/[cnt] AS [average_star], b.[user_no] FROM
+				(SELECT  SUM([star_cnt]) AS [start] ,COUNT([user_no]) AS [cnt], [user_no] FROM [dbo].[TB_LIVE_STAR_GRADE] GROUP BY [user_no]) AS b
+		]]>
+	</select>
+
+	<select id="getRoomStatus" parameterType="hashMap" resultType="com.livelyit.allcam.dto.RoomStatusDTO">
+  	<![CDATA[
+  		SELECT ISNULL([room_status], -1) AS room_status FROM [dbo].[TB_LIVE_ROOM] WHERE [room_id] = #{value}
+  	]]>
+	</select>
+
+	<update id="updateCallFinish" parameterType="HashMap">
+	<![CDATA[
+		EXEC [dbo].uspCallFinish #{finish_user_no}, #{room_id},#{finish_use_seconds} , #{finish_type}
+	]]>
+  	</update>
+
+	<update id="updateCallFinishV2" parameterType="HashMap">
+	<![CDATA[
+		EXEC [dbo].uspCallFinishV2 #{finish_user_no}, #{room_id},#{finish_use_seconds} , #{finish_type}, #{cash_per_seconds}, #{point_per_seconds}
+	]]>
+  	</update>
+
+	<update id="updateVoiceCallFinish" parameterType="HashMap">
+	<![CDATA[
+		EXEC [dbo].uspVoiceCallFinish #{finish_user_no}, #{room_id},#{finish_use_seconds} , #{finish_type}
+	]]>
+  	</update>
+
+	<update id="updateVoiceCallFinishV2" parameterType="HashMap">
+	<![CDATA[
+		EXEC [dbo].uspVoiceCallFinishV2 #{finish_user_no}, #{room_id},#{finish_use_seconds} , #{finish_type}, #{cash_per_seconds}, #{point_per_seconds}
+	]]>
+  	</update>
+
+	<select id="uspGetCashByCall" parameterType="HashMap" statementType="CALLABLE" resultType="com.livelyit.allcam.dto.GetCashByCallDTO">
+	<![CDATA[
+
+		EXEC uspGetCashByCall #{user_no}, #{room_id}, #{get_cash}, #{partner_user_no},  #{result_code, mode=OUT, jdbcType=INTEGER}, #{result_msg, mode=OUT, jdbcType=NVARCHAR}
+
+	]]>
+	</select>
+
+	<select id="uspPayPointByCall" parameterType="HashMap" statementType="CALLABLE" resultType="com.livelyit.allcam.dto.PayPointByCallDTO">
+	<![CDATA[
+
+		EXEC uspPayPointByCall #{user_no}, #{room_id}, #{pay_point}, #{pay_free_point}, #{partner_user_no},  #{result_code, mode=OUT, jdbcType=INTEGER}, #{result_msg, mode=OUT, jdbcType=NVARCHAR}
+
+	]]>
+	</select>
+
+
+</mapper>

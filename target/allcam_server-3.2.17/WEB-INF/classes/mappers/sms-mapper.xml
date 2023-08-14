@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="smsMapper">
+	<insert id="insertCertNum" parameterType="hashMap">
+ 	<![CDATA[
+ 		INSERT INTO TB_USER_CERT (user_hp, req_no) VALUES (#{receiver_hp}, #{cert_num})
+ 	]]>
+	</insert>
+
+	<select id="checkCertNum" parameterType="hashMap" resultType="int">
+	<![CDATA[
+		IF EXISTS (SELECT * FROM TB_USER_CERT WHERE user_hp = #{receiver_hp} AND [req_no] = #{cert_num} AND user_no IS NULL)
+        	SELECT no FROM TB_USER_CERT WHERE user_hp = #{receiver_hp} AND [req_no] = #{cert_num} AND user_no IS NULL
+		ELSE
+    		SELECT 0
+  	]]>
+	</select>
+</mapper>
+
+
